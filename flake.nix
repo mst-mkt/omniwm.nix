@@ -8,7 +8,11 @@
   outputs =
     inputs:
     let
-      omniwm = inputs.nixpkgs.legacyPackages.aarch64-darwin.callPackage ./nix/package.nix { };
+      inherit (inputs.nixpkgs) lib;
+      pkgs = inputs.nixpkgs.legacyPackages.aarch64-darwin;
+
+      omniwm = pkgs.callPackage ./nix/package.nix { };
+      omniwmLib = import ./nix/lib.nix { inherit lib; };
     in
     {
       packages.aarch64-darwin = {
@@ -22,6 +26,20 @@
 
       homeManagerModules.default = ./nix/module.nix;
 
-      lib = import ./nix/lib.nix { inherit (inputs.nixpkgs) lib; };
+      lib = omniwmLib;
+
+      checks.aarch64-darwin.lib =
+        let
+          failures = lib.runTests (import ./nix/lib-tests.nix { omniwm = omniwmLib; });
+        in
+        pkgs.runCommand "omniwm-lib-tests" { } (
+          if failures == [ ] then
+            "touch $out"
+          else
+            ''
+              echo ${lib.escapeShellArg (lib.generators.toPretty { } failures)} >&2
+              exit 1
+            ''
+        );
     };
 }
