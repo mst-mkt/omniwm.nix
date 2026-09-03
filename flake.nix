@@ -19,5 +19,7 @@
       overlays.default = final: _: {
         omniwm = final.callPackage ./nix/package.nix { };
       };
+
+      homeManagerModules.default = ./nix/module.nix;
     };
 }
