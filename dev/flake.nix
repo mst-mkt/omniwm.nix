@@ -28,6 +28,10 @@
             nixfmt.enable = true;
             deadnix.enable = true;
             statix.enable = true;
+            yamlfmt = {
+              enable = true;
+              settings.formatter.retain_line_breaks_single = true;
+            };
           };
         }
       );
