@@ -21,5 +21,7 @@
       };
 
       homeManagerModules.default = ./nix/module.nix;
+
+      lib = import ./nix/lib.nix { inherit (inputs.nixpkgs) lib; };
     };
 }
