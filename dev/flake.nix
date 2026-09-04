@@ -29,6 +29,7 @@
             deadnix.enable = true;
             statix.enable = true;
             oxfmt.enable = true;
+            swift-format.enable = true;
           };
         }
       );
