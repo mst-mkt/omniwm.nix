@@ -66,16 +66,27 @@ in
     }
     // attrs;
 
-  workspace =
-    name: attrs:
-    {
-      id = mkId "workspace:${name}";
-      inherit name;
-      # follows general.defaultLayoutType
-      layoutType = "default";
-      monitorAssignment.type = "main";
-    }
-    // attrs;
+  # [ { } { displayName = "chat"; } ] -> [ { id; name = "1"; ... } { id; name = "2"; displayName; ... } ]
+  workspaces =
+    let
+      workspace =
+        index: attrs:
+        let
+          name = toString index;
+        in
+        assert lib.assertMsg (
+          !(attrs ? name)
+        ) "omniwm.lib.workspaces: `name` is the position in the list, got ${builtins.toJSON attrs.name}";
+        {
+          id = mkId "workspace:${name}";
+          inherit name;
+          # follows general.defaultLayoutType
+          layoutType = "default";
+          monitorAssignment.type = "main";
+        }
+        // attrs;
+    in
+    lib.imap1 workspace;
 
   # shared by the six monitor*Overrides lists
   monitorOverride =

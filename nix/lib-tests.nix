@@ -4,6 +4,10 @@ let
   uuidPattern = "[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}";
   isUuid = s: builtins.match uuidPattern s != null;
   fails = expr: !(builtins.tryEval expr).success;
+  twoWorkspaces = omniwm.workspaces [
+    { }
+    { }
+  ];
 in
 
 {
@@ -109,25 +113,43 @@ in
     expected = "custom";
   };
 
-  # workspace
-  testWorkspaceShape = {
-    expr = removeAttrs (omniwm.workspace "code" { }) [ "id" ];
-    expected = {
-      name = "code";
-      layoutType = "default";
-      monitorAssignment.type = "main";
-    };
+  # workspaces
+  testWorkspacesShape = {
+    expr = map (workspace: removeAttrs workspace [ "id" ]) (
+      omniwm.workspaces [
+        { }
+        {
+          displayName = "chat";
+          layoutType = "dwindle";
+          monitorAssignment.type = "secondary";
+        }
+      ]
+    );
+    expected = [
+      {
+        name = "1";
+        layoutType = "default";
+        monitorAssignment.type = "main";
+      }
+      {
+        name = "2";
+        displayName = "chat";
+        layoutType = "dwindle";
+        monitorAssignment.type = "secondary";
+      }
+    ];
   };
-  testWorkspaceOverrides = {
-    expr = removeAttrs (omniwm.workspace "code" {
-      layoutType = "dwindle";
-      monitorAssignment.type = "secondary";
-    }) [ "id" ];
-    expected = {
-      name = "code";
-      layoutType = "dwindle";
-      monitorAssignment.type = "secondary";
-    };
+  testWorkspacesIdIsUuid = {
+    expr = builtins.all (workspace: isUuid workspace.id) twoWorkspaces;
+    expected = true;
+  };
+  testWorkspacesIdVariesByPosition = {
+    expr = (builtins.head twoWorkspaces).id == (builtins.elemAt twoWorkspaces 1).id;
+    expected = false;
+  };
+  testWorkspacesRejectsName = {
+    expr = fails (builtins.head (omniwm.workspaces [ { name = "code"; } ]));
+    expected = true;
   };
 
   # monitorOverride

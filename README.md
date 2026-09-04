@@ -37,11 +37,15 @@ in
       gaps.size = 12.0;
       borders.color = omniwmLib.colors.fromHex "#7aa2f7";
 
-      workspaces = map (name: omniwmLib.workspace name { }) [ "1" "2" "3" "4" ];
+      workspaces = omniwmLib.workspaces [
+        { displayName = "browse"; }
+        { displayName = "code"; }
+        { displayName = "chat"; monitorAssignment.type = "secondary"; }
+      ];
 
       appRules = [
         (omniwmLib.appRule "com.apple.finder" { layout = "float"; })
-        (omniwmLib.appRule "com.google.Chrome" { assignToWorkspace = "2"; })
+        (omniwmLib.appRule "com.google.Chrome" { assignToWorkspace = "1"; })
       ];
 
       hotkeys = omniwmLib.hotkeys {
@@ -134,15 +138,27 @@ OmniWM rejects a settings file that is missing a required key, so `settings` is 
 }</pre></td>
     </tr>
     <tr>
-      <td><code>workspace</code></td>
-      <td>Workspace with a deterministic <code>id</code>, <code>layoutType = "default"</code>, and the main monitor.</td>
-      <td><pre lang="nix">workspace "1" { }</pre></td>
-      <td><pre lang="nix">{
-  id = &lt;uuid&gt;;
-  name = "1";
-  layoutType = "default";
-  monitorAssignment.type = "main";
-}</pre></td>
+      <td><code>workspaces</code></td>
+      <td>Builds the <code>workspaces</code> list. <code>name</code> is the position in the list; each entry also gets a deterministic <code>id</code>, <code>layoutType = "default"</code>, and the main monitor.</td>
+      <td><pre lang="nix">workspaces [
+  { }
+  { displayName = "chat"; monitorAssignment.type = "secondary"; }
+]</pre></td>
+      <td><pre lang="nix">[
+  {
+    id = &lt;uuid&gt;;
+    name = "1";
+    layoutType = "default";
+    monitorAssignment.type = "main";
+  }
+  {
+    id = &lt;uuid&gt;;
+    name = "2";
+    displayName = "chat";
+    layoutType = "default";
+    monitorAssignment.type = "secondary";
+  }
+]</pre></td>
     </tr>
     <tr>
       <td><code>monitorOverride</code></td>
@@ -159,7 +175,9 @@ OmniWM rejects a settings file that is missing a required key, so `settings` is 
   </tbody>
 </table>
 
-The ids are UUIDs derived from the arguments, so they stay the same across rebuilds.
+The ids are UUIDs derived from the inputs, so they stay the same across rebuilds.
+
+OmniWM identifies workspaces by number, so `workspaces` takes `name` from the position in the list, and `assignToWorkspace` refers to that number rather than to `displayName`.
 
 Hotkey ids and their default bindings are listed in [settings-defaults.toml](./settings-defaults.toml). Bindings use OmniWM's own notation, such as `"Option+Shift+Left Arrow"`; OmniWM rejects the whole file when it cannot parse one.
 
