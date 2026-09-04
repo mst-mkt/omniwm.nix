@@ -8,6 +8,11 @@
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    git-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -33,13 +38,25 @@
           };
         }
       );
+
+      preCommit = forAllSystems (
+        system:
+        inputs.git-hooks.lib.${system}.run {
+          src = ./..;
+          hooks.treefmt = {
+            enable = true;
+            package = treefmtEval.${system}.config.build.wrapper;
+          };
+        }
+      );
     in
     {
       formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);
 
       devShells = forAllSystems (system: {
         default = inputs.nixpkgs.legacyPackages.${system}.mkShellNoCC {
-          packages = [ treefmtEval.${system}.config.build.wrapper ];
+          packages = [ treefmtEval.${system}.config.build.wrapper ] ++ preCommit.${system}.enabledPackages;
+          inherit (preCommit.${system}) shellHook;
         };
       });
 
