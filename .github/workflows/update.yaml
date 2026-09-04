@@ -110,7 +110,7 @@ jobs:
     env:
       OLD: ${{ needs.update.outputs.old }}
       NEW: ${{ needs.update.outputs.new }}
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ secrets.UPDATE_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
