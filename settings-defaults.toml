@@ -1,11 +1,10 @@
-# Generated from OmniWM v0.6.5 by codegen/generate-defaults.nu
+# Generated from OmniWM v0.6.9 by codegen/generate-defaults.nu
 monitorBarOverrides = []
 monitorDwindleOverrides = []
 monitorGapOverrides = []
 monitorNiriOverrides = []
 monitorOrientationOverrides = []
-monitorRoutingOverrides = []
-schemaVersion = 2
+schemaVersion = 3
 
 [appearance]
 mode = "dark"
@@ -137,6 +136,7 @@ position = "center"
 widthPercent = 50.0
 
 [routing]
+arrangements = []
 mode = "macOS"
 
 [scratchpads]

@@ -7,11 +7,11 @@
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "omniwm";
-  version = "0.6.5";
+  version = "0.6.9";
 
   src = fetchurl {
     url = "https://github.com/BarutSRB/OmniWM/releases/download/v${finalAttrs.version}/OmniWM-v${finalAttrs.version}.zip";
-    hash = "sha256-9eQxUVJ0V1WwutJpprMal9qbv6UqKXBzR9dnPeLpHo0=";
+    hash = "sha256-nCSrF04RoeIRVaBkDgMjvqp+IqQC5ZtpaUyEZbACsWU=";
   };
 
   # unzip breaks the .app code signature, so extract with bsdtar instead
