@@ -5,6 +5,26 @@ const root = path self ..
 const out = $root | path join "settings-defaults.toml"
 const repo_url = "https://github.com/BarutSRB/OmniWM"
 
+# Xcode 27 beta 6 expands `@TaskLocal` + `@usableFromInline` on separate lines into the invalid
+# `@usableFromInlinenonisolated`; on one line the attribute's trailing space survives the expansion.
+# Fixed on main by swiftlang/swift#90791 (6.4 cherry-pick #91671 still open). Remove once the runner has it.
+def work-around-task-local-macro-bug [] {
+  let file = "Sources/OmniWM/Core/Ax/AppThreadToken.swift"
+  let before = "@TaskLocal\n@usableFromInline\nvar appThreadToken"
+  let after = "@TaskLocal @usableFromInline var appThreadToken"
+
+  if not ($file | path exists) {
+    print --stderr $"warning: ($file) not found; upstream may have moved it"
+    return
+  }
+  let source = open --raw $file
+  if not ($source | str contains $before) {
+    print --stderr $"warning: @TaskLocal workaround pattern not found in ($file); upstream may have changed"
+    return
+  }
+  $source | str replace $before $after | save --force $file
+}
+
 # Regenerates settings-defaults.toml by building upstream at the packaged tag and running an injected test.
 # The output is byte-identical to OmniWM's first-launch settings.toml, plus a version header line.
 # Requires macOS with an Xcode matching upstream's swift-tools-version.
@@ -32,6 +52,8 @@ def main [] {
       ./Scripts/ghostty-preflight.sh verify
 
       cp ($script_dir | path join "GenerateDefaultsTemplateTests.swift") Tests/OmniWMTests/
+      # temporary: upstream does not compile on the runner's Xcode as-is
+      work-around-task-local-macro-bug
 
       with-env {
         OMNIWM_DEFAULTS_OUT: $generated
