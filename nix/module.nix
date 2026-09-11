@@ -133,9 +133,13 @@ in
       }
     ];
 
-    warnings = lib.mkIf (cfg.settings != null && userSettings ? schemaVersion) [
-      "programs.omniwm: settings.schemaVersion is set, but it is managed by OmniWM (schema migrations) and will be ignored. Remove it from your settings."
-    ];
+    warnings = lib.mkIf (cfg.settings != null) (
+      lib.optional (userSettings ? schemaVersion)
+        "programs.omniwm: settings.schemaVersion is set, but it is managed by OmniWM (schema migrations) and will be ignored. Remove it from your settings."
+      ++
+        lib.optional (userSettings ? monitorRoutingOverrides)
+          "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements."
+    );
 
     home.packages = [ cfg.package ];
 
