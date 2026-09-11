@@ -88,7 +88,7 @@ in
     in
     lib.imap1 workspace;
 
-  # shared by the six monitor*Overrides lists
+  # shared by the five monitor*Overrides lists
   monitorOverride =
     name: attrs:
     {
