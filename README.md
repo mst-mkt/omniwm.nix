@@ -4,12 +4,14 @@ Nix flake for [OmniWM](https://github.com/BarutSRB/OmniWM), a macOS tiling windo
 
 ## Why this flake
 
-- A Home Manager module declares the settings and the launchd agent next to the rest of your configuration.
-- OmniWM rejects a `settings.toml` that is missing a required key. `settings` is merged into OmniWM's own default `settings.toml`, so you write only what you change.
-- That default `settings.toml` is generated from the OmniWM sources and updated with every version bump, so new keys arrive with the package.
-- OmniWM rewrites `settings.toml` at startup, so the module deploys it as a writable file.
-- The module rejects unknown hotkey ids at evaluation. OmniWM would otherwise reject the whole file silently at login.
-- `lib` provides helpers for the parts of the settings that are tedious to write by hand, such as ids and colors.
+Home Manager ships its own [`programs.omniwm`](https://github.com/nix-community/home-manager/blob/master/modules/programs/omniwm.nix), which installs `pkgs.omniwm`, starts the launchd agent, and writes `settings` as given. This flake's module uses the same option path and replaces the built-in one when imported. The difference is in how `settings` is handled.
+
+|                         | Home Manager built-in                                                                                                              | This flake                                                                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `settings`              | Written as given. OmniWM rejects a `settings.toml` that is missing a required key, so the value has to spell out the whole schema. | Merged into [the default `settings.toml`](./settings-defaults.toml) of the packaged OmniWM version, so you write only what you change. The defaults are regenerated with every version bump, so new keys arrive with the package. |
+| `hotkeys`               | Written as given.                                                                                                                  | Merged per `id`. Unknown ids fail at evaluation, as OmniWM would otherwise reject the whole file silently at login.                                                                                                               |
+| `settings.toml` on disk | Symlink into the Nix store. OmniWM writes through the link, so it reports its writes as blocked.                                   | Writable copy, as OmniWM rewrites the file at startup. The previous file is kept as `settings.toml.bak`.                                                                                                                          |
+| Helpers                 | None.                                                                                                                              | `lib` for the parts that are tedious to write by hand, such as ids and colors.                                                                                                                                                    |
 
 ## Usage
 
@@ -64,7 +66,7 @@ in
 | Option            | Default              | Description                                                                       |
 | ----------------- | -------------------- | --------------------------------------------------------------------------------- |
 | `enable`          | `false`              | Install OmniWM and manage its settings.                                           |
-| `package`         | this flake's package | Another version works as long as it accepts this flake's default `settings.toml`. |
+| `package`         | this flake's package | Another package works as long as it accepts this flake's default `settings.toml`. |
 | `settings`        | `null`               | Attribute set or path to a TOML file. `null` leaves the file unmanaged.           |
 | `mutableSettings` | `true`               | Deploy a writable copy instead of a symlink into the Nix store.                   |
 | `launchd.enable`  | `true`               | Start OmniWM with a launchd agent.                                                |
