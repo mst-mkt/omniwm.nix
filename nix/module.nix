@@ -49,6 +49,8 @@ let
 in
 
 {
+  disabledModules = [ "programs/omniwm.nix" ];
+
   options.programs.omniwm = {
     enable = lib.mkEnableOption "OmniWM";
 
