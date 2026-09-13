@@ -1,4 +1,4 @@
-# Generated from OmniWM v0.6.9 by codegen/generate-defaults.nu
+# Generated from OmniWM v0.6.10 by codegen/generate-defaults.nu
 monitorBarOverrides = []
 monitorDwindleOverrides = []
 monitorGapOverrides = []
