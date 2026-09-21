@@ -91,9 +91,34 @@ in
   # shared by the five monitor*Overrides lists
   monitorOverride =
     name: attrs:
-    {
-      id = mkId "monitor:${name}";
-      monitorName = name;
-    }
-    // attrs;
+    let
+      uuid = attrs.monitorDisplayUUID or null;
+      displayId = attrs.monitorDisplayId or null;
+      canonicalUuid = lib.toUpper uuid;
+      hasUuidShape =
+        builtins.match "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" uuid
+        != null;
+      isUint32 = builtins.isInt displayId && displayId >= 0 && displayId <= lib.fromHexString "FFFFFFFF";
+      identity = if uuid != null then canonicalUuid else "${name}:${toString displayId}";
+      entry = {
+        id = mkId "monitor:${identity}";
+        monitorName = name;
+      }
+      // removeAttrs attrs [
+        "monitorDisplayUUID"
+        "monitorDisplayId"
+      ]
+      // lib.optionalAttrs (uuid != null) { monitorDisplayUUID = canonicalUuid; }
+      // lib.optionalAttrs (displayId != null) { monitorDisplayId = displayId; };
+    in
+    assert lib.assertMsg (uuid != null || displayId != null)
+      "omniwm.lib.monitorOverride: ${builtins.toJSON name} has neither `monitorDisplayUUID` nor `monitorDisplayId`, so OmniWM applies it to no display.";
+    assert lib.assertMsg (uuid == null || hasUuidShape)
+      "omniwm.lib.monitorOverride: expected `monitorDisplayUUID` in UUID form, got ${builtins.toJSON uuid}.";
+    assert lib.assertMsg (displayId == null || isUint32)
+      "omniwm.lib.monitorOverride: expected `monitorDisplayId` to be a UInt32, got ${builtins.toJSON displayId}.";
+    if uuid != null then
+      entry
+    else
+      lib.warn "omniwm.lib.monitorOverride: ${builtins.toJSON name} is matched by `monitorDisplayId` ${toString displayId} and a name equal to the one macOS reports, and that id can change when displays are reconnected." entry;
 }

@@ -4,6 +4,8 @@ let
   uuidPattern = "[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}";
   isUuid = s: builtins.match uuidPattern s != null;
   fails = expr: !(builtins.tryEval expr).success;
+  displayUuid = "37D8832A-2D66-02CA-B9F7-8F30A301B230";
+  displayUuidLower = "37d8832a-2d66-02ca-b9f7-8f30a301b230";
   twoWorkspaces = omniwm.workspaces [
     { }
     { }
@@ -154,10 +156,78 @@ in
 
   # monitorOverride
   testMonitorOverrideShape = {
-    expr = removeAttrs (omniwm.monitorOverride "DELL U2723QE" { innerGap = 8.0; }) [ "id" ];
+    expr = removeAttrs (omniwm.monitorOverride "DELL U2723QE" {
+      monitorDisplayUUID = displayUuid;
+      innerGap = 8.0;
+    }) [ "id" ];
     expected = {
       monitorName = "DELL U2723QE";
+      monitorDisplayUUID = displayUuid;
       innerGap = 8.0;
     };
+  };
+  testMonitorOverrideUpperCasesUuid = {
+    expr =
+      (omniwm.monitorOverride "DELL U2723QE" {
+        monitorDisplayUUID = displayUuidLower;
+      }).monitorDisplayUUID;
+    expected = displayUuid;
+  };
+  testMonitorOverrideIdIsUuid = {
+    expr = isUuid (omniwm.monitorOverride "DELL U2723QE" { monitorDisplayUUID = displayUuid; }).id;
+    expected = true;
+  };
+  testMonitorOverrideIdIgnoresUuidCase = {
+    expr =
+      (omniwm.monitorOverride "DELL U2723QE" { monitorDisplayUUID = displayUuid; }).id
+      == (omniwm.monitorOverride "DELL U2723QE" { monitorDisplayUUID = displayUuidLower; }).id;
+    expected = true;
+  };
+  testMonitorOverrideIdVariesByDisplay = {
+    expr =
+      (omniwm.monitorOverride "DELL U2723QE" { monitorDisplayUUID = displayUuid; }).id
+      == (omniwm.monitorOverride "DELL U2723QE" {
+        monitorDisplayUUID = "5B0F5F3C-0B2E-4C0F-9E0A-6C3E1D2A7B41";
+      }).id;
+    expected = false;
+  };
+  testMonitorOverrideAcceptsDisplayId = {
+    expr = removeAttrs (omniwm.monitorOverride "DELL U2723QE" {
+      monitorDisplayId = 1;
+      innerGap = 8.0;
+    }) [ "id" ];
+    expected = {
+      monitorName = "DELL U2723QE";
+      monitorDisplayId = 1;
+      innerGap = 8.0;
+    };
+  };
+  testMonitorOverrideDropsNullUuid = {
+    expr =
+      omniwm.monitorOverride "DELL U2723QE" {
+        monitorDisplayUUID = null;
+        monitorDisplayId = 1;
+      } ? monitorDisplayUUID;
+    expected = false;
+  };
+  testMonitorOverrideRejectsMissingIdentity = {
+    expr = fails (omniwm.monitorOverride "DELL U2723QE" { innerGap = 8.0; });
+    expected = true;
+  };
+  testMonitorOverrideRejectsMalformedUuid = {
+    expr = fails (omniwm.monitorOverride "DELL U2723QE" { monitorDisplayUUID = "DELL U2723QE"; });
+    expected = true;
+  };
+  testMonitorOverrideRejectsMalformedDisplayId = {
+    expr = map (id: fails (omniwm.monitorOverride "DELL U2723QE" { monitorDisplayId = id; })) [
+      1.0
+      (-1)
+      4294967296
+    ];
+    expected = [
+      true
+      true
+      true
+    ];
   };
 }
