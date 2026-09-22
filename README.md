@@ -1,6 +1,6 @@
 # omniwm.nix
 
-Nix flake for [OmniWM](https://github.com/BarutSRB/OmniWM), a macOS tiling window manager. It provides the package, a Home Manager module, and helpers for writing its settings.
+Nix flake for [OmniWM](https://github.com/OmniNull/OmniWM), a macOS tiling window manager. It provides the package, a Home Manager module, and helpers for writing its settings.
 
 ## Why this flake
 
@@ -219,6 +219,6 @@ Feedback from real users is welcome. Please file it as an [issue](https://github
 ## License
 
 - [MIT](./LICENSE), unless noted below
-- GPL-2.0-only for the files derived from the [OmniWM](https://github.com/BarutSRB/OmniWM) sources
+- GPL-2.0-only for the files derived from the [OmniWM](https://github.com/OmniNull/OmniWM) sources
   - `settings-defaults.toml`
   - `codegen/GenerateDefaultsTemplateTests.swift`

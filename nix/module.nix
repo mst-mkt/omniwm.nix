@@ -90,7 +90,7 @@ in
 
         When `null` (the default), the settings file is not managed and can be edited freely via the GUI.
 
-        See <https://github.com/BarutSRB/OmniWM> for available options.
+        See <https://github.com/OmniNull/OmniWM> for available options.
       '';
     };
 
