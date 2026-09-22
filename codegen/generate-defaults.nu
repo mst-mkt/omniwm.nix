@@ -3,7 +3,7 @@
 const script_dir = path self .
 const root = path self ..
 const out = $root | path join "settings-defaults.toml"
-const repo_url = "https://github.com/BarutSRB/OmniWM"
+const repo_url = "https://github.com/OmniNull/OmniWM"
 
 # Xcode 27 beta 6 expands `@TaskLocal` + `@usableFromInline` on separate lines into the invalid
 # `@usableFromInlinenonisolated`; on one line the attribute's trailing space survives the expansion.
