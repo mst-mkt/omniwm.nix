@@ -45,7 +45,14 @@ let
     hotkeys = mergedHotkeys;
   };
 
-  settingsFile = tomlFormat.generate "omniwm-settings.toml" mergedSettings;
+  # the only monitor*Overrides list whose entries have no `id`
+  settingsWithoutUndeclaredIds = mergedSettings // {
+    monitorOrientationOverrides = map (
+      entry: removeAttrs entry [ "id" ]
+    ) mergedSettings.monitorOrientationOverrides;
+  };
+
+  settingsFile = tomlFormat.generate "omniwm-settings.toml" settingsWithoutUndeclaredIds;
 in
 
 {
