@@ -183,12 +183,24 @@ in
       == (omniwm.monitorOverride "DELL U2723QE" { monitorDisplayUUID = displayUuidLower; }).id;
     expected = true;
   };
+  testMonitorOverrideIdIgnoresMonitorName = {
+    expr =
+      (omniwm.monitorOverride "DELL U2723QE" { monitorDisplayUUID = displayUuid; }).id
+      == (omniwm.monitorOverride "LG 27UL850" { monitorDisplayUUID = displayUuid; }).id;
+    expected = true;
+  };
   testMonitorOverrideIdVariesByDisplay = {
     expr =
       (omniwm.monitorOverride "DELL U2723QE" { monitorDisplayUUID = displayUuid; }).id
       == (omniwm.monitorOverride "DELL U2723QE" {
         monitorDisplayUUID = "5B0F5F3C-0B2E-4C0F-9E0A-6C3E1D2A7B41";
       }).id;
+    expected = false;
+  };
+  testMonitorOverrideIdVariesByMonitorNameWithoutUuid = {
+    expr =
+      (omniwm.monitorOverride "DELL U2723QE" { monitorDisplayId = 1; }).id
+      == (omniwm.monitorOverride "LG 27UL850" { monitorDisplayId = 1; }).id;
     expected = false;
   };
   testMonitorOverrideAcceptsDisplayId = {
