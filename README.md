@@ -166,11 +166,13 @@ OmniWM rejects a settings file that is missing a required key, so `settings` is 
       <td><code>monitorOverride</code></td>
       <td>Entry for the <code>monitor*Overrides</code> lists with a deterministic <code>id</code> and <code>monitorName</code>.</td>
       <td><pre lang="nix">monitorOverride "DELL U2720Q" {
+  monitorDisplayUUID = "37d8832a-2d66-02ca-b9f7-8f30a301b230";
   innerGap = 8.0;
 }</pre></td>
       <td><pre lang="nix">{
   id = &lt;uuid&gt;;
   monitorName = "DELL U2720Q";
+  monitorDisplayUUID = "37D8832A-2D66-02CA-B9F7-8F30A301B230";
   innerGap = 8.0;
 }</pre></td>
     </tr>
