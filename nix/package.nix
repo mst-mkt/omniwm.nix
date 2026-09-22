@@ -10,7 +10,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   version = "0.7.1";
 
   src = fetchurl {
-    url = "https://github.com/BarutSRB/OmniWM/releases/download/v${finalAttrs.version}/OmniWM-v${finalAttrs.version}.zip";
+    url = "https://github.com/OmniNull/OmniWM/releases/download/v${finalAttrs.version}/OmniWM-v${finalAttrs.version}.zip";
     hash = "sha256-cTXVIMBf1wEt6Mm3WgvZbT+/rYERvie7XDACtgz3YWI=";
   };
 
@@ -43,8 +43,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       layouts, a quake terminal powered by libghostty, scratchpads,
       overview mode, command palette, and workspace bar.
     '';
-    homepage = "https://github.com/BarutSRB/OmniWM";
-    changelog = "https://github.com/BarutSRB/OmniWM/releases/tag/v${finalAttrs.version}";
+    homepage = "https://github.com/OmniNull/OmniWM";
+    changelog = "https://github.com/OmniNull/OmniWM/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.gpl2Only;
     mainProgram = "OmniWM";
     platforms = [ "aarch64-darwin" ];
