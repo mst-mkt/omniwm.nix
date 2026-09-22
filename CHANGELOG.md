@@ -3,6 +3,7 @@
 ## 2026-09-23
 
 - **Breaking** `lib.monitorOverride` now requires `monitorDisplayUUID` or `monitorDisplayId`. Existing entries need one added, or the evaluation fails. ([#11](https://github.com/mst-mkt/omniwm.nix/pull/11))
+- The OmniWM source, `meta.homepage` and `meta.changelog` now point to [`OmniNull/OmniWM`](https://github.com/OmniNull/OmniWM) instead of `BarutSRB/OmniWM`, following the upstream repository transfer. The fetched source is identical, so no action is needed. ([#15](https://github.com/mst-mkt/omniwm.nix/pull/15))
 
 ## Earlier
 
