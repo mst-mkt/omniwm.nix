@@ -260,7 +260,7 @@ Feedback from real users is welcome. Please file it as an [issue](https://github
 | Command                                                   | Purpose                                                           |
 | --------------------------------------------------------- | ----------------------------------------------------------------- |
 | `treefmt`                                                 | Format.                                                           |
-| `nix flake check`                                         | lib tests. macOS only.                                            |
+| `nix flake check`                                         | lib and nushell tests. macOS only.                                |
 | `nix run nixpkgs#nushell -- codegen/generate-defaults.nu` | Regenerate `settings-defaults.toml`. macOS with a matching Xcode. |
 
 `settings-defaults.toml` is the `settings.toml` that OmniWM writes on first launch. [codegen/generate-defaults.nu](./codegen/generate-defaults.nu) generates it from the upstream sources at the packaged tag. The Update workflow bumps the version and regenerates the file daily, so neither needs to be done by hand.
