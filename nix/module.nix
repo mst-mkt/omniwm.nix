@@ -186,8 +186,8 @@ in
         KeepAlive = lib.mkDefault cfg.launchd.keepAlive;
         RunAtLoad = true;
         EnvironmentVariables.XDG_CONFIG_HOME = config.xdg.configHome;
-        StandardOutPath = "${config.home.homeDirectory}/Library/Logs/omniwm.log";
-        StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/omniwm.err.log";
+        StandardOutPath = lib.mkDefault "${config.home.homeDirectory}/Library/Logs/omniwm.log";
+        StandardErrorPath = lib.mkDefault "${config.home.homeDirectory}/Library/Logs/omniwm.err.log";
       };
     };
   };
