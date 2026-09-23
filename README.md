@@ -78,6 +78,7 @@ OmniWM rejects a settings file that is missing a required key, so `settings` is 
 - Other lists (`workspaces`, `appRules`, `monitor*Overrides`) replace the defaults wholesale.
 - OmniWM rewrites the file at startup, so by default it is deployed as a writable copy.
 - Changes made at runtime (GUI, monitor overrides) are overwritten on the next activation. The previous file is kept as `settings.toml.bak`.
+- The writable copy is written by the activation entry `omniwmSettings` (only with `mutableSettings`), which other entries can be ordered against.
 
 ## Settings helpers
 
