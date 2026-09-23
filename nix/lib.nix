@@ -136,7 +136,17 @@ in
     gap = name: attrs: withMonitorId (monitorSettings "monitor.gap" name attrs);
     niri = name: attrs: withMonitorId (monitorSettings "monitor.niri" name attrs);
     orientation = monitorSettings "monitor.orientation";
-    routing = monitorSettings "monitor.routing";
+    routing =
+      name: attrs:
+      let
+        column = attrs.gridColumn or null;
+        row = attrs.gridRow or null;
+      in
+      assert lib.assertMsg (builtins.isInt column)
+        "omniwm.lib.monitor.routing: expected `gridColumn` to be an integer, got ${builtins.toJSON column}.";
+      assert lib.assertMsg (builtins.isInt row)
+        "omniwm.lib.monitor.routing: expected `gridRow` to be an integer, got ${builtins.toJSON row}.";
+      monitorSettings "monitor.routing" name attrs;
   };
 
   # [ (monitor.routing ...) ... ] -> { id; monitors = [ ... ]; }, id independent of the order

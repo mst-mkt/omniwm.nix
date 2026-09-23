@@ -269,7 +269,13 @@ in
   };
   testMonitorIdPerList = {
     expr = builtins.mapAttrs (
-      _: helper: helper "DELL U2723QE" { monitorDisplayUUID = displayUuid; } ? id
+      _: helper:
+      helper "DELL U2723QE" {
+        monitorDisplayUUID = displayUuid;
+        # required by routing
+        gridColumn = 0;
+        gridRow = 0;
+      } ? id
     ) omniwm.monitor;
     expected = {
       bar = true;
@@ -299,6 +305,34 @@ in
       }
     );
     expected = true;
+  };
+  testMonitorRoutingRejectsMalformedGrid = {
+    expr =
+      map
+        (
+          grid:
+          fails (
+            omniwm.monitor.routing "DELL U2723QE" (
+              {
+                monitorDisplayUUID = displayUuid;
+              }
+              // grid
+            )
+          )
+        )
+        [
+          { gridRow = 0; }
+          { gridColumn = 0; }
+          {
+            gridColumn = 0.0;
+            gridRow = 0;
+          }
+        ];
+    expected = [
+      true
+      true
+      true
+    ];
   };
 
   # routingArrangement
