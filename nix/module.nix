@@ -49,6 +49,7 @@ let
   settingsFile = tomlFormat.generate "omniwm-settings.toml" mergedSettings;
   # Given a .toml file, nushell's `to toml` edits that file instead of writing the record afresh, and keeps its spacing (`[[monitorGapOverrides ]]`).
   settingsJson = pkgs.writeText "omniwm-settings.json" (builtins.toJSON mergedSettings);
+  deploySettings = pkgs.writers.writeNu "omniwm-deploy-settings" ./deploy-settings.nu;
 
   preservedNames = builtins.filter (name: name != "schemaVersion") cfg.preserveSettings;
   preservedPaths = map (lib.splitString ".") preservedNames;
@@ -218,28 +219,9 @@ in
     home.activation.omniwmSettings = lib.mkIf (cfg.settings != null && cfg.mutableSettings) (
       # Run after linkGeneration so a store symlink from mutableSettings = false is already removed.
       lib.hm.dag.entryAfter [ "writeBoundary" "linkGeneration" ] ''
-        omniwmSettings="${config.xdg.configHome}/omniwm/settings.toml"
-        settingsSource="${settingsFile}"
-        ${
-          # Referring to nushell only here keeps it out of the closure when nothing is preserved.
-          lib.optionalString (preservedPaths != [ ]) ''
-            settingsSource="$(mktemp)"
-            ${lib.getExe pkgs.nushell} ${./preserve-settings.nu} \
-              ${settingsJson} "$omniwmSettings" "$settingsSource" \
-              ${lib.escapeShellArg (builtins.toJSON preservedPaths)}
-          ''
-        }
-        if ! cmp -s "$settingsSource" "$omniwmSettings"; then
-          run mkdir -p "$(dirname "$omniwmSettings")"
-          # install unlinks the destination first, so a symlinked .bak never has its target overwritten.
-          if [[ -e "$omniwmSettings" ]]; then
-            run install -T -m 644 "$omniwmSettings" "$omniwmSettings.bak"
-          fi
-          # OmniWM reloads on every change without debounce, so replace the file atomically.
-          run install -T -m 644 "$settingsSource" "$omniwmSettings.tmp"
-          run mv -fT "$omniwmSettings.tmp" "$omniwmSettings"
-        fi
-        ${lib.optionalString (preservedPaths != [ ]) ''rm -f "$settingsSource"''}
+        ${deploySettings} ''${DRY_RUN:+--dry-run} \
+          ${settingsFile} ${settingsJson} ${lib.escapeShellArg "${config.xdg.configHome}/omniwm/settings.toml"} \
+          ${lib.escapeShellArg (builtins.toJSON preservedPaths)}
       ''
     );
 
