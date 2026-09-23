@@ -6,6 +6,7 @@
 - The OmniWM source, `meta.homepage` and `meta.changelog` now point to [`OmniNull/OmniWM`](https://github.com/OmniNull/OmniWM) instead of `BarutSRB/OmniWM`, following the upstream repository transfer. The fetched source is identical, so no action is needed. ([#15](https://github.com/mst-mkt/omniwm.nix/pull/15))
 - `settings.toml` is now replaced atomically, so OmniWM no longer reads a partly written file. ([#16](https://github.com/mst-mkt/omniwm.nix/pull/16))
 - When `xdg.configHome` is not `~/.config`, OmniWM started by the launchd agent now reads the deployed settings instead of `~/.config/omniwm/settings.toml`. ([#16](https://github.com/mst-mkt/omniwm.nix/pull/16))
+- `launchd.keepAlive` sets the launchd agent's `KeepAlive` key.
 
 ## Earlier
 
