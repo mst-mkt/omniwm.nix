@@ -204,10 +204,6 @@ OmniWM rejects a settings file that is missing a required key, so `settings` is 
 
 The ids are UUIDs derived from the inputs, so they stay the same across rebuilds.
 
-`monitor.<name>` builds entries for `monitor<Name>Overrides`, such as `monitor.gap` for `monitorGapOverrides`. `monitor.routing` builds entries for `routing.arrangements[].monitors`.
-
-`monitorOverride` is deprecated in favor of `monitor.*`. It emits an `id` for every list, which OmniWM reports as an unrecognized key in `monitorOrientationOverrides` and `routing.arrangements[].monitors`.
-
 OmniWM identifies workspaces by number, so `workspaces` takes `name` from the position in the list, and `assignToWorkspace` refers to that number rather than to `displayName`.
 
 Hotkey ids and their default bindings are listed in [settings-defaults.toml](./settings-defaults.toml). Bindings use OmniWM's own notation, such as `"Option+Shift+Left Arrow"`; OmniWM rejects the whole file when it cannot parse one.
