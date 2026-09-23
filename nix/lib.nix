@@ -9,6 +9,47 @@ let
       part = start: len: builtins.substring start len hash;
     in
     lib.toUpper "${part 0 8}-${part 8 4}-${part 12 4}-${part 16 4}-${part 20 12}";
+
+  # keys of MonitorSettingsType, shared by all six lists
+  monitorSettings =
+    caller: name: attrs:
+    let
+      uuid = attrs.monitorDisplayUUID or null;
+      displayId = attrs.monitorDisplayId or null;
+      canonicalUuid = lib.toUpper uuid;
+      hasUuidShape =
+        builtins.match "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" uuid
+        != null;
+      isUint32 = builtins.isInt displayId && displayId >= 0 && displayId <= lib.fromHexString "FFFFFFFF";
+      entry = {
+        monitorName = name;
+      }
+      // removeAttrs attrs [
+        "monitorDisplayUUID"
+        "monitorDisplayId"
+      ]
+      // lib.optionalAttrs (uuid != null) { monitorDisplayUUID = canonicalUuid; }
+      // lib.optionalAttrs (displayId != null) { monitorDisplayId = displayId; };
+    in
+    assert lib.assertMsg (uuid != null || displayId != null)
+      "omniwm.lib.${caller}: ${builtins.toJSON name} has neither `monitorDisplayUUID` nor `monitorDisplayId`, so OmniWM applies it to no display.";
+    assert lib.assertMsg (
+      uuid == null || hasUuidShape
+    ) "omniwm.lib.${caller}: expected `monitorDisplayUUID` in UUID form, got ${builtins.toJSON uuid}.";
+    assert lib.assertMsg (displayId == null || isUint32)
+      "omniwm.lib.${caller}: expected `monitorDisplayId` to be a UInt32, got ${builtins.toJSON displayId}.";
+    if uuid != null then
+      entry
+    else
+      lib.warn "omniwm.lib.${caller}: ${builtins.toJSON name} is matched by `monitorDisplayId` ${toString displayId} and a name equal to the one macOS reports, and that id can change when displays are reconnected." entry;
+
+  # display an entry applies to, seed of its id
+  monitorIdentity =
+    entry:
+    entry.monitorDisplayUUID or "${entry.monitorName}:${toString (entry.monitorDisplayId or "")}";
+
+  # for the four lists whose entries store an id
+  withMonitorId = entry: { id = mkId "monitor:${monitorIdentity entry}"; } // entry;
 in
 
 {
@@ -88,37 +129,19 @@ in
     in
     lib.imap1 workspace;
 
-  # shared by the five monitor*Overrides lists
+  # one per MonitorSettingsType implementation
+  monitor = {
+    bar = name: attrs: withMonitorId (monitorSettings "monitor.bar" name attrs);
+    dwindle = name: attrs: withMonitorId (monitorSettings "monitor.dwindle" name attrs);
+    gap = name: attrs: withMonitorId (monitorSettings "monitor.gap" name attrs);
+    niri = name: attrs: withMonitorId (monitorSettings "monitor.niri" name attrs);
+    orientation = monitorSettings "monitor.orientation";
+    routing = monitorSettings "monitor.routing";
+  };
+
+  # deprecated, emits an id even for orientation and routing
   monitorOverride =
-    name: attrs:
-    let
-      uuid = attrs.monitorDisplayUUID or null;
-      displayId = attrs.monitorDisplayId or null;
-      canonicalUuid = lib.toUpper uuid;
-      hasUuidShape =
-        builtins.match "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" uuid
-        != null;
-      isUint32 = builtins.isInt displayId && displayId >= 0 && displayId <= lib.fromHexString "FFFFFFFF";
-      identity = if uuid != null then canonicalUuid else "${name}:${toString displayId}";
-      entry = {
-        id = mkId "monitor:${identity}";
-        monitorName = name;
-      }
-      // removeAttrs attrs [
-        "monitorDisplayUUID"
-        "monitorDisplayId"
-      ]
-      // lib.optionalAttrs (uuid != null) { monitorDisplayUUID = canonicalUuid; }
-      // lib.optionalAttrs (displayId != null) { monitorDisplayId = displayId; };
-    in
-    assert lib.assertMsg (uuid != null || displayId != null)
-      "omniwm.lib.monitorOverride: ${builtins.toJSON name} has neither `monitorDisplayUUID` nor `monitorDisplayId`, so OmniWM applies it to no display.";
-    assert lib.assertMsg (uuid == null || hasUuidShape)
-      "omniwm.lib.monitorOverride: expected `monitorDisplayUUID` in UUID form, got ${builtins.toJSON uuid}.";
-    assert lib.assertMsg (displayId == null || isUint32)
-      "omniwm.lib.monitorOverride: expected `monitorDisplayId` to be a UInt32, got ${builtins.toJSON displayId}.";
-    if uuid != null then
-      entry
-    else
-      lib.warn "omniwm.lib.monitorOverride: ${builtins.toJSON name} is matched by `monitorDisplayId` ${toString displayId} and a name equal to the one macOS reports, and that id can change when displays are reconnected." entry;
+    lib.warn
+      "omniwm.lib.monitorOverride is deprecated; use omniwm.lib.monitor.{bar,dwindle,gap,niri,orientation,routing} instead."
+      (name: attrs: withMonitorId (monitorSettings "monitorOverride" name attrs));
 }
