@@ -13,6 +13,11 @@
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    nutest = {
+      url = "github:vyadh/nutest/v1.2.0";
+      flake = false;
+    };
   };
 
   outputs =
@@ -53,12 +58,23 @@
     {
       formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);
 
-      devShells = forAllSystems (system: {
-        default = inputs.nixpkgs.legacyPackages.${system}.mkShellNoCC {
-          packages = [ treefmtEval.${system}.config.build.wrapper ] ++ preCommit.${system}.enabledPackages;
-          inherit (preCommit.${system}) shellHook;
-        };
-      });
+      devShells = forAllSystems (
+        system:
+        let
+          pkgs = inputs.nixpkgs.legacyPackages.${system};
+        in
+        {
+          default = pkgs.mkShellNoCC {
+            packages = [
+              treefmtEval.${system}.config.build.wrapper
+              pkgs.nushell
+            ]
+            ++ preCommit.${system}.enabledPackages;
+            env.NU_LIB_DIRS = "${inputs.nutest}";
+            inherit (preCommit.${system}) shellHook;
+          };
+        }
+      );
 
       checks = forAllSystems (
         system:
