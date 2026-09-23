@@ -48,14 +48,15 @@ let
 
   settingsFile = tomlFormat.generate "omniwm-settings.toml" mergedSettings;
 
-  preservedPaths = map (lib.splitString ".") cfg.preserveSettings;
+  preservedNames = builtins.filter (name: name != "schemaVersion") cfg.preserveSettings;
+  preservedPaths = map (lib.splitString ".") preservedNames;
   # OmniWM leaves out the `monitors` table when `ranking` is empty, so the template has no such key.
   unknownPreservedPaths = builtins.filter (
     name: name != "monitors" && !(lib.hasAttrByPath (lib.splitString "." name) defaultSettings)
-  ) cfg.preserveSettings;
+  ) preservedNames;
   declaredPreservedPaths = builtins.filter (
     name: lib.hasAttrByPath (lib.splitString "." name) userSettings
-  ) cfg.preserveSettings;
+  ) preservedNames;
 in
 
 {
@@ -173,7 +174,7 @@ in
           OmniWM rejects the entire settings file when it contains unknown hotkey ids; see settings-defaults.toml in the omniwm.nix flake for the known ids.'';
       }
       {
-        assertion = cfg.settings == null || cfg.preserveSettings == [ ] || cfg.mutableSettings;
+        assertion = cfg.settings == null || preservedNames == [ ] || cfg.mutableSettings;
         message = ''
           programs.omniwm: preserveSettings requires mutableSettings = true.
           With mutableSettings = false, settings.toml is a read-only symlink into the Nix store, so OmniWM never persists the values you are asking to preserve.'';
@@ -195,7 +196,7 @@ in
     ];
 
     warnings =
-      lib.optional (cfg.settings == null && cfg.preserveSettings != [ ])
+      lib.optional (cfg.settings == null && preservedNames != [ ])
         "programs.omniwm: preserveSettings has no effect while settings is null, because the settings file is left unmanaged and nothing overwrites it."
       ++
         lib.optional (cfg.settings != null && userSettings ? schemaVersion)
@@ -219,7 +220,7 @@ in
         settingsSource="${settingsFile}"
         ${
           # Referring to nushell only here keeps it out of the closure when nothing is preserved.
-          lib.optionalString (cfg.preserveSettings != [ ]) ''
+          lib.optionalString (preservedPaths != [ ]) ''
             settingsSource="$(mktemp)"
             ${lib.getExe pkgs.nushell} ${./preserve-settings.nu} \
               ${settingsFile} "$omniwmSettings" "$settingsSource" \
@@ -236,7 +237,7 @@ in
           run install -T -m 644 "$settingsSource" "$omniwmSettings.tmp"
           run mv -fT "$omniwmSettings.tmp" "$omniwmSettings"
         fi
-        ${lib.optionalString (cfg.preserveSettings != [ ]) ''rm -f "$settingsSource"''}
+        ${lib.optionalString (preservedPaths != [ ]) ''rm -f "$settingsSource"''}
       ''
     );
 
