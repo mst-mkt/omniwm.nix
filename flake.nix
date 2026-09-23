@@ -42,13 +42,6 @@
                 exit 1
               ''
           );
-
-        nu = pkgs.runCommand "omniwm-nu-tests" { nativeBuildInputs = [ pkgs.nushell ]; } ''
-          for test in ${./.}/scripts/*-tests.nu; do
-            nu "$test"
-          done
-          touch $out
-        '';
       };
     };
 }

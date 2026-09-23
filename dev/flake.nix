@@ -83,6 +83,25 @@
         in
         {
           treefmt = treefmtEval.${system}.config.build.check (pkgs.lib.cleanSource ./..);
+
+          nu =
+            pkgs.runCommand "omniwm-nu-tests"
+              {
+                nativeBuildInputs = [ pkgs.nushell ];
+                NU_LIB_DIRS = "${inputs.nutest}";
+                src = pkgs.lib.fileset.toSource {
+                  root = ./..;
+                  fileset = pkgs.lib.fileset.unions [
+                    ../scripts
+                    ../settings-defaults.toml
+                  ];
+                };
+              }
+              ''
+                cd "$src"
+                nu -n -c 'use nutest; nutest run-tests --path scripts --fail'
+                touch $out
+              '';
         }
       );
     };
