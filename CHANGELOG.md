@@ -8,6 +8,7 @@
 - When `xdg.configHome` is not `~/.config`, OmniWM started by the launchd agent now reads the deployed settings instead of `~/.config/omniwm/settings.toml`. ([#16](https://github.com/mst-mkt/omniwm.nix/pull/16))
 - `launchd.keepAlive` sets the launchd agent's `KeepAlive` key. ([#18](https://github.com/mst-mkt/omniwm.nix/pull/18))
 - `lib.monitorOverride` is split into `lib.monitor.{bar,dwindle,gap,niri,orientation,routing}`, one helper per settings list, so a list with required keys now has them checked at evaluation, such as `gridColumn` and `gridRow` for `lib.monitor.routing`. `lib.routingArrangement` builds an element of `routing.arrangements` from `lib.monitor.routing` entries. `lib.monitorOverride` remains as deprecated. ([#19](https://github.com/mst-mkt/omniwm.nix/pull/19))
+- `preserveSettings` keeps the listed paths from the existing `settings.toml` instead of regenerating them, so settings made on the machine, such as the monitor overrides and the monitor arrangement, can survive a switch. ([#17](https://github.com/mst-mkt/omniwm.nix/pull/17))
 
 ## Earlier
 
