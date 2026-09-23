@@ -18,16 +18,17 @@ def main [
   paths: string # JSON key paths to take from <live>, e.g. [["routing"],["hiddenBar","hiddenBundleIDs"]]
 ] {
   let current = current-settings $live
+  let preserved = $paths
+    | from json
+    | reduce --fold { } {|path, acc|
+        let key = $path | into cell-path
+        let value = try { $current | get --optional $key } catch { null }
+        if $value == null { $acc } else { $acc | upsert $key $value }
+      }
 
-  $paths
-  | from json
-  | reduce --fold (open --raw $generated | from toml) {|path, settings|
-      let key = $path | into cell-path
-      # A cell path errors out when an intermediate is a scalar rather than missing.
-      # A live file that disagrees with the schema then keeps the generated value.
-      let value = try { $current | get --optional $key } catch { null }
-      if $value == null { $settings } else { $settings | upsert $key $value }
-    }
+  open --raw $generated
+  | from toml
+  | merge deep --strategy=overwrite $preserved
   | to toml
   | save --force $out
 }

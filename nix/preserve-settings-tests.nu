@@ -33,6 +33,13 @@ def main [] {
   nu $script generated.toml merged.toml again.toml $paths
   assert equal (open --raw merged.toml) (open --raw again.toml)
 
+  # A table written for an older schema keeps the keys the generated one adds.
+  $defaults | upsert routing { mode: "custom" } | to toml | save --force legacy.toml
+  nu $script generated.toml legacy.toml upgraded.toml $paths
+  let upgraded = open --raw upgraded.toml | from toml
+  assert equal $upgraded.routing.mode "custom"
+  assert equal $upgraded.routing.arrangements $defaults.routing.arrangements
+
   nu $script generated.toml absent.toml fresh.toml $paths
   assert equal (open --raw fresh.toml) (open --raw generated.toml)
 
