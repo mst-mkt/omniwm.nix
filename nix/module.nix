@@ -49,7 +49,7 @@ let
   settingsFile = tomlFormat.generate "omniwm-settings.toml" mergedSettings;
   # Given a .toml file, nushell's `to toml` edits that file instead of writing the record afresh, and keeps its spacing (`[[monitorGapOverrides ]]`).
   settingsJson = pkgs.writeText "omniwm-settings.json" (builtins.toJSON mergedSettings);
-  deploySettings = pkgs.writers.writeNu "omniwm-deploy-settings" ./deploy-settings.nu;
+  deploySettings = pkgs.writers.writeNu "omniwm-deploy-settings" ../scripts/deploy-settings.nu;
 
   preservedNames = builtins.filter (name: name != "schemaVersion") cfg.preserveSettings;
   preservedPaths = map (lib.splitString ".") preservedNames;
