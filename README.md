@@ -63,13 +63,14 @@ in
 
 ## Home Manager module
 
-| Option            | Default              | Description                                                                       |
-| ----------------- | -------------------- | --------------------------------------------------------------------------------- |
-| `enable`          | `false`              | Install OmniWM and manage its settings.                                           |
-| `package`         | this flake's package | Another package works as long as it accepts this flake's default `settings.toml`. |
-| `settings`        | `null`               | Attribute set or path to a TOML file. `null` leaves the file unmanaged.           |
-| `mutableSettings` | `true`               | Deploy a writable copy instead of a symlink into the Nix store.                   |
-| `launchd.enable`  | `true`               | Start OmniWM with a launchd agent.                                                |
+| Option              | Default                       | Description                                                                       |
+| ------------------- | ----------------------------- | --------------------------------------------------------------------------------- |
+| `enable`            | `false`                       | Install OmniWM and manage its settings.                                           |
+| `package`           | this flake's package          | Another package works as long as it accepts this flake's default `settings.toml`. |
+| `settings`          | `null`                        | Attribute set or path to a TOML file. `null` leaves the file unmanaged.           |
+| `mutableSettings`   | `true`                        | Deploy a writable copy instead of a symlink into the Nix store.                   |
+| `launchd.enable`    | `true`                        | Start OmniWM with a launchd agent.                                                |
+| `launchd.keepAlive` | `{ SuccessfulExit = false; }` | launchd's `KeepAlive` key for the agent.                                          |
 
 OmniWM rejects a settings file that is missing a required key, so `settings` is merged into [OmniWM's own default `settings.toml`](./settings-defaults.toml). The keys are documented in the [Settings Reference](https://omniwm.app/config/settings-reference/).
 
