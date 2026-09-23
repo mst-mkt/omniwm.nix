@@ -47,6 +47,18 @@ let
   };
 
   settingsFile = tomlFormat.generate "omniwm-settings.toml" mergedSettings;
+  # Given a .toml file, nushell's `to toml` edits that file instead of writing the record afresh, and keeps its spacing (`[[monitorGapOverrides ]]`).
+  settingsJson = pkgs.writeText "omniwm-settings.json" (builtins.toJSON mergedSettings);
+
+  preservedNames = builtins.filter (name: name != "schemaVersion") cfg.preserveSettings;
+  preservedPaths = map (lib.splitString ".") preservedNames;
+  # OmniWM leaves out the `monitors` table when `ranking` is empty, so the template has no such key.
+  unknownPreservedPaths = builtins.filter (
+    name: name != "monitors" && !(lib.hasAttrByPath (lib.splitString "." name) defaultSettings)
+  ) preservedNames;
+  declaredPreservedPaths = builtins.filter (
+    name: lib.hasAttrByPath (lib.splitString "." name) userSettings
+  ) preservedNames;
 in
 
 {
@@ -92,6 +104,25 @@ in
         When `null` (the default), the settings file is not managed and can be edited freely via the GUI.
 
         See <https://github.com/OmniNull/OmniWM> for available options.
+      '';
+    };
+
+    preserveSettings = lib.mkOption {
+      type = with lib.types; listOf str;
+      default = [ ];
+      example = [
+        "monitorGapOverrides"
+        "monitors"
+        "routing"
+        "workspaceBar.iconOverrides"
+      ];
+      description = ''
+        Settings that OmniWM owns at runtime, as dot-separated paths into {file}`settings.toml`.
+
+        The whole file is regenerated on every activation, so a value set in the GUI is replaced by the built-in default.
+        Each path listed here is read out of the file OmniWM currently has and layered back over the generated one instead.
+
+        A path the current file does not hold keeps the built-in default, as on the first activation.
       '';
     };
 
@@ -144,15 +175,37 @@ in
           }: ${lib.concatStringsSep ", " unknownHotkeyIds}.
           OmniWM rejects the entire settings file when it contains unknown hotkey ids; see settings-defaults.toml in the omniwm.nix flake for the known ids.'';
       }
+      {
+        assertion = cfg.settings == null || preservedNames == [ ] || cfg.mutableSettings;
+        message = ''
+          programs.omniwm: preserveSettings requires mutableSettings = true.
+          With mutableSettings = false, settings.toml is a read-only symlink into the Nix store, so OmniWM never persists the values you are asking to preserve.'';
+      }
+      {
+        assertion = unknownPreservedPaths == [ ];
+        message = ''
+          programs.omniwm: preserveSettings contains paths unknown to OmniWM ${
+            cfg.package.version or "unknown"
+          }: ${lib.concatStringsSep ", " unknownPreservedPaths}.
+          See settings-defaults.toml in the omniwm.nix flake for the known keys.'';
+      }
+      {
+        assertion = cfg.settings == null || declaredPreservedPaths == [ ];
+        message = ''
+          programs.omniwm: preserveSettings and settings both set ${lib.concatStringsSep ", " declaredPreservedPaths}.
+          A preserved path is taken from the file OmniWM has, so the declared value would only survive until OmniWM first writes it. Set it in one of the two.'';
+      }
     ];
 
-    warnings = lib.mkIf (cfg.settings != null) (
-      lib.optional (userSettings ? schemaVersion)
-        "programs.omniwm: settings.schemaVersion is set, but it is managed by OmniWM (schema migrations) and will be ignored. Remove it from your settings."
+    warnings =
+      lib.optional (cfg.settings == null && preservedNames != [ ])
+        "programs.omniwm: preserveSettings has no effect while settings is null, because the settings file is left unmanaged and nothing overwrites it."
       ++
-        lib.optional (userSettings ? monitorRoutingOverrides)
-          "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements."
-    );
+        lib.optional (cfg.settings != null && userSettings ? schemaVersion)
+          "programs.omniwm: settings.schemaVersion is set, but it is managed by OmniWM (schema migrations) and will be ignored. Remove it from your settings."
+      ++
+        lib.optional (cfg.settings != null && userSettings ? monitorRoutingOverrides)
+          "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements.";
 
     home.packages = [ cfg.package ];
 
@@ -166,16 +219,27 @@ in
       # Run after linkGeneration so a store symlink from mutableSettings = false is already removed.
       lib.hm.dag.entryAfter [ "writeBoundary" "linkGeneration" ] ''
         omniwmSettings="${config.xdg.configHome}/omniwm/settings.toml"
-        if ! cmp -s ${settingsFile} "$omniwmSettings"; then
+        settingsSource="${settingsFile}"
+        ${
+          # Referring to nushell only here keeps it out of the closure when nothing is preserved.
+          lib.optionalString (preservedPaths != [ ]) ''
+            settingsSource="$(mktemp)"
+            ${lib.getExe pkgs.nushell} ${./preserve-settings.nu} \
+              ${settingsJson} "$omniwmSettings" "$settingsSource" \
+              ${lib.escapeShellArg (builtins.toJSON preservedPaths)}
+          ''
+        }
+        if ! cmp -s "$settingsSource" "$omniwmSettings"; then
           run mkdir -p "$(dirname "$omniwmSettings")"
           # install unlinks the destination first, so a symlinked .bak never has its target overwritten.
           if [[ -e "$omniwmSettings" ]]; then
             run install -T -m 644 "$omniwmSettings" "$omniwmSettings.bak"
           fi
           # OmniWM reloads on every change without debounce, so replace the file atomically.
-          run install -T -m 644 ${settingsFile} "$omniwmSettings.tmp"
+          run install -T -m 644 "$settingsSource" "$omniwmSettings.tmp"
           run mv -fT "$omniwmSettings.tmp" "$omniwmSettings"
         fi
+        ${lib.optionalString (preservedPaths != [ ]) ''rm -f "$settingsSource"''}
       ''
     );
 

@@ -68,6 +68,7 @@ in
 | `enable`            | `false`                       | Install OmniWM and manage its settings.                                           |
 | `package`           | this flake's package          | Another package works as long as it accepts this flake's default `settings.toml`. |
 | `settings`          | `null`                        | Attribute set or path to a TOML file. `null` leaves the file unmanaged.           |
+| `preserveSettings`  | `[ ]`                         | Paths kept from the existing `settings.toml` instead of being regenerated.        |
 | `mutableSettings`   | `true`                        | Deploy a writable copy instead of a symlink into the Nix store.                   |
 | `launchd.enable`    | `true`                        | Start OmniWM with a launchd agent.                                                |
 | `launchd.keepAlive` | `{ SuccessfulExit = false; }` | launchd's `KeepAlive` key for the agent.                                          |
@@ -77,8 +78,32 @@ OmniWM rejects a settings file that is missing a required key, so `settings` is 
 - `hotkeys` must list every action exactly once, so its entries are merged per `id` instead of replacing the list. Unknown ids fail at evaluation.
 - Other lists (`workspaces`, `appRules`, `monitor*Overrides`) replace the defaults wholesale.
 - OmniWM rewrites the file at startup, so by default it is deployed as a writable copy.
-- Changes made at runtime (GUI, monitor overrides) are overwritten on the next activation. The previous file is kept as `settings.toml.bak`.
+- Changes made at runtime (GUI, monitor overrides) are overwritten on the next activation unless the path is listed in `preserveSettings`. The previous file is kept as `settings.toml.bak`.
 - The writable copy is written by the activation entry `omniwmSettings` (only with `mutableSettings`), which other entries can be ordered against.
+
+### Keeping settings that OmniWM owns at runtime
+
+`preserveSettings` takes dot-separated paths into `settings.toml`. Each activation keeps the value the file already holds at those paths, instead of replacing it with the generated one.
+
+Use it for the settings that are easier to make on the machine than to declare. `lib.monitor.*` and `lib.routingArrangement` can declare them too, but each entry needs the display's UUID read off the machine first.
+
+Those settings live under these paths.
+
+```nix
+programs.omniwm.preserveSettings = [
+  "monitorBarOverrides"
+  "monitorDwindleOverrides"
+  "monitorGapOverrides"
+  "monitorNiriOverrides"
+  "monitorOrientationOverrides"
+  "monitors"
+  "routing"
+];
+```
+
+- A listed path must not also be set in `settings`. Both at once fails at evaluation.
+- The built-in default is used on the first activation, and whenever the existing file does not hold the path.
+- Requires `mutableSettings = true`. OmniWM cannot write to a read-only symlink into the store, so there is nothing to keep.
 
 ## Settings helpers
 
@@ -235,7 +260,7 @@ Feedback from real users is welcome. Please file it as an [issue](https://github
 | Command                                                   | Purpose                                                           |
 | --------------------------------------------------------- | ----------------------------------------------------------------- |
 | `treefmt`                                                 | Format.                                                           |
-| `nix flake check`                                         | lib tests. macOS only.                                            |
+| `nix flake check`                                         | lib and nushell tests. macOS only.                                |
 | `nix run nixpkgs#nushell -- codegen/generate-defaults.nu` | Regenerate `settings-defaults.toml`. macOS with a matching Xcode. |
 
 `settings-defaults.toml` is the `settings.toml` that OmniWM writes on first launch. [codegen/generate-defaults.nu](./codegen/generate-defaults.nu) generates it from the upstream sources at the packaged tag. The Update workflow bumps the version and regenerates the file daily, so neither needs to be done by hand.
