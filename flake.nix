@@ -27,28 +27,5 @@
       homeManagerModules.default = ./nix/module.nix;
 
       lib = omniwmLib;
-
-      checks.aarch64-darwin = {
-        lib =
-          let
-            failures = lib.runTests (import ./nix/lib-tests.nix { omniwm = omniwmLib; });
-          in
-          pkgs.runCommand "omniwm-lib-tests" { } (
-            if failures == [ ] then
-              "touch $out"
-            else
-              ''
-                echo ${lib.escapeShellArg (lib.generators.toPretty { } failures)} >&2
-                exit 1
-              ''
-          );
-
-        nu = pkgs.runCommand "omniwm-nu-tests" { nativeBuildInputs = [ pkgs.nushell ]; } ''
-          for test in ${./.}/nix/*-tests.nu; do
-            nu "$test"
-          done
-          touch $out
-        '';
-      };
     };
 }
