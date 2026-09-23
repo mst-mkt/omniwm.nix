@@ -164,9 +164,9 @@ OmniWM rejects a settings file that is missing a required key, so `settings` is 
 ]</pre></td>
     </tr>
     <tr>
-      <td><code>monitorOverride</code></td>
-      <td>Entry for the <code>monitor*Overrides</code> lists with a deterministic <code>id</code> and <code>monitorName</code>.</td>
-      <td><pre lang="nix">monitorOverride "DELL U2720Q" {
+      <td><code>monitor.*</code></td>
+      <td>Entry for one per-monitor list, with <code>monitorName</code>. <code>bar</code>, <code>dwindle</code>, <code>gap</code> and <code>niri</code> also get a deterministic <code>id</code>, which <code>orientation</code> and <code>routing</code> do not have.</td>
+      <td><pre lang="nix">monitor.gap "DELL U2720Q" {
   monitorDisplayUUID = "37d8832a-2d66-02ca-b9f7-8f30a301b230";
   innerGap = 8.0;
 }</pre></td>
@@ -177,10 +177,36 @@ OmniWM rejects a settings file that is missing a required key, so `settings` is 
   innerGap = 8.0;
 }</pre></td>
     </tr>
+    <tr>
+      <td><code>routingArrangement</code></td>
+      <td>Element of <code>routing.arrangements</code> with a deterministic <code>id</code>. The monitors are built with <code>monitor.routing</code>.</td>
+      <td><pre lang="nix">routingArrangement [
+  (monitor.routing "DELL U2720Q" {
+    monitorDisplayUUID = "37d8832a-2d66-02ca-b9f7-8f30a301b230";
+    gridColumn = 0;
+    gridRow = 0;
+  })
+]</pre></td>
+      <td><pre lang="nix">{
+  id = &lt;uuid&gt;;
+  monitors = [
+    {
+      monitorName = "DELL U2720Q";
+      monitorDisplayUUID = "37D8832A-2D66-02CA-B9F7-8F30A301B230";
+      gridColumn = 0;
+      gridRow = 0;
+    }
+  ];
+}</pre></td>
+    </tr>
   </tbody>
 </table>
 
 The ids are UUIDs derived from the inputs, so they stay the same across rebuilds.
+
+`monitor.<name>` builds entries for `monitor<Name>Overrides`, such as `monitor.gap` for `monitorGapOverrides`. `monitor.routing` builds entries for `routing.arrangements[].monitors`.
+
+`monitorOverride` is deprecated in favor of `monitor.*`. It emits an `id` for every list, which OmniWM reports as an unrecognized key in `monitorOrientationOverrides` and `routing.arrangements[].monitors`.
 
 OmniWM identifies workspaces by number, so `workspaces` takes `name` from the position in the list, and `assignToWorkspace` refers to that number rather than to `displayName`.
 
