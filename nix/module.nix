@@ -152,10 +152,18 @@ in
     # OmniWM rewrites the file at startup, so deploy a writable copy.
     # The launchd-started app never sees shell exports, so avoid $XDG_CONFIG_HOME.
     home.activation.omniwmSettings = lib.mkIf (cfg.settings != null && cfg.mutableSettings) (
-      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      # Run after linkGeneration so a store symlink from mutableSettings = false is already removed.
+      lib.hm.dag.entryAfter [ "writeBoundary" "linkGeneration" ] ''
         omniwmSettings="${config.xdg.configHome}/omniwm/settings.toml"
         if ! cmp -s ${settingsFile} "$omniwmSettings"; then
-          run install -D -m 644 -b -S .bak ${settingsFile} "$omniwmSettings"
+          run mkdir -p "$(dirname "$omniwmSettings")"
+          # install unlinks the destination first, so a symlinked .bak never has its target overwritten.
+          if [[ -e "$omniwmSettings" ]]; then
+            run install -T -m 644 "$omniwmSettings" "$omniwmSettings.bak"
+          fi
+          # OmniWM reloads on every change without debounce, so replace the file atomically.
+          run install -T -m 644 ${settingsFile} "$omniwmSettings.tmp"
+          run mv -fT "$omniwmSettings.tmp" "$omniwmSettings"
         fi
       ''
     );
