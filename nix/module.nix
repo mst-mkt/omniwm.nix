@@ -1,5 +1,6 @@
 {
   config,
+  options,
   lib,
   pkgs,
   ...
@@ -113,6 +114,16 @@ in
         default = true;
         description = "Whether to manage OmniWM with a launchd agent.";
       };
+
+      keepAlive = lib.mkOption {
+        type =
+          ((options.launchd.agents.type.getSubOptions [ ]).config.type.getSubOptions [ ]).KeepAlive.type;
+        default = {
+          SuccessfulExit = false;
+        };
+        example = true;
+        description = "launchd's `KeepAlive` key for the agent.";
+      };
     };
   };
 
@@ -172,7 +183,7 @@ in
       inherit (cfg.launchd) enable;
       config = {
         Program = "${cfg.package}/Applications/OmniWM.app/Contents/MacOS/OmniWM";
-        KeepAlive = lib.mkDefault { SuccessfulExit = false; };
+        KeepAlive = lib.mkDefault cfg.launchd.keepAlive;
         RunAtLoad = true;
         EnvironmentVariables.XDG_CONFIG_HOME = config.xdg.configHome;
         StandardOutPath = "${config.home.homeDirectory}/Library/Logs/omniwm.log";
