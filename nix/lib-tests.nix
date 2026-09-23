@@ -7,6 +7,16 @@ let
   displayUuid = "37D8832A-2D66-02CA-B9F7-8F30A301B230";
   displayUuidLower = "37d8832a-2d66-02ca-b9f7-8f30a301b230";
   otherDisplayUuid = "5B0F5F3C-0B2E-4C0F-9E0A-6C3E1D2A7B41";
+  routingLeft = omniwm.monitor.routing "DELL U2723QE" {
+    monitorDisplayUUID = displayUuid;
+    gridColumn = 0;
+    gridRow = 0;
+  };
+  routingRight = omniwm.monitor.routing "LG 27UL850" {
+    monitorDisplayUUID = otherDisplayUuid;
+    gridColumn = 1;
+    gridRow = 0;
+  };
   twoWorkspaces = omniwm.workspaces [
     { }
     { }
@@ -289,6 +299,37 @@ in
       }
     );
     expected = true;
+  };
+
+  # routingArrangement
+  testRoutingArrangementShape = {
+    expr = removeAttrs (omniwm.routingArrangement [ routingLeft ]) [ "id" ];
+    expected = {
+      monitors = [ routingLeft ];
+    };
+  };
+  testRoutingArrangementIdIsUuid = {
+    expr = isUuid (omniwm.routingArrangement [ routingLeft ]).id;
+    expected = true;
+  };
+  testRoutingArrangementIdIgnoresOrder = {
+    expr =
+      (omniwm.routingArrangement [
+        routingLeft
+        routingRight
+      ]).id == (omniwm.routingArrangement [
+        routingRight
+        routingLeft
+      ]).id;
+    expected = true;
+  };
+  testRoutingArrangementIdVariesByMonitors = {
+    expr =
+      (omniwm.routingArrangement [ routingLeft ]).id == (omniwm.routingArrangement [
+        routingLeft
+        routingRight
+      ]).id;
+    expected = false;
   };
 
   # monitorOverride

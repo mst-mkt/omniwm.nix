@@ -139,6 +139,12 @@ in
     routing = monitorSettings "monitor.routing";
   };
 
+  # [ (monitor.routing ...) ... ] -> { id; monitors = [ ... ]; }, id independent of the order
+  routingArrangement = monitors: {
+    id = mkId "arrangement:${lib.concatStringsSep "," (lib.sort lib.lessThan (map monitorIdentity monitors))}";
+    inherit monitors;
+  };
+
   # deprecated, emits an id even for orientation and routing
   monitorOverride =
     lib.warn
