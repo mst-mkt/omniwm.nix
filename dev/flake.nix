@@ -84,6 +84,23 @@
         {
           treefmt = treefmtEval.${system}.config.build.check (pkgs.lib.cleanSource ./..);
 
+          lib =
+            let
+              inherit (pkgs) lib;
+              failures = lib.runTests (
+                import ../nix/lib-tests.nix { omniwm = import ../nix/lib.nix { inherit lib; }; }
+              );
+            in
+            pkgs.runCommand "omniwm-lib-tests" { } (
+              if failures == [ ] then
+                "touch $out"
+              else
+                ''
+                  echo ${lib.escapeShellArg (lib.generators.toPretty { } failures)} >&2
+                  exit 1
+                ''
+            );
+
           nu =
             pkgs.runCommand "omniwm-nu-tests"
               {
