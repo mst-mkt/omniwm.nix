@@ -5,7 +5,7 @@ def current-settings [live: path]: nothing -> record {
   if not ($live | path exists) { return {} }
 
   try { open --raw $live | from toml } catch {
-    print --stderr $"warning: ($live) is not valid TOML; nothing is preserved from it"
+    print --stderr $"warning: ($live) is not valid TOML; replacing it with the generated settings"
     {}
   }
 }
@@ -30,27 +30,22 @@ def main [
   let live = $live | path expand --no-symlink
   let paths = $paths | from json
 
-  let settings = if ($paths | is-empty) {
-    open --raw $generated_toml
-  } else {
-    let current = current-settings $live
-    let preserved = $paths
-      | reduce --fold { } {|path, acc|
-          let key = $path | into cell-path
-          let value = try { $current | get --optional $key } catch { null }
-          if $value == null { $acc } else { $acc | upsert $key $value }
-        }
-
-    open --raw $generated_json
+  let current = current-settings $live
+  let preserved = $paths
+    | reduce --fold { } {|path, acc|
+        let key = $path | into cell-path
+        let value = try { $current | get --optional $key } catch { null }
+        if $value == null { $acc } else { $acc | upsert $key $value }
+      }
+  let merged = open --raw $generated_json
     | from json
     | merge deep --strategy=overwrite $preserved
-    | to toml
-  }
 
-  if ($live | path exists) and (open --raw $live) == $settings { return }
+  if ($live | path exists) and $merged == $current { return }
 
   let source = mktemp --tmpdir omniwm-settings.XXXXXX
-  $settings | save --force $source
+  if ($paths | is-empty) { open --raw $generated_toml } else { $merged | to toml }
+  | save --force $source
   run-or-print $dry_run [mkdir -p ($live | path dirname)]
   # install unlinks the destination first, so a symlinked .bak never has its target overwritten.
   if ($live | path exists) {

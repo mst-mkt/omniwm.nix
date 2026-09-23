@@ -9,6 +9,7 @@ const paths = '[["monitorGapOverrides"],["monitors"],["routing"],["workspaceBar"
 def setup []: nothing -> record {
   let dir = mktemp --directory
   let defaults = open --raw $template | from toml
+  $defaults | to toml | save ($dir | path join generated.toml)
   $defaults | to json | save ($dir | path join generated.json)
 
   let gui = {
@@ -36,7 +37,7 @@ def cleanup [] {
 
 def deploy [context: record, --paths: string = $paths, --dry-run]: nothing -> string {
   let flags = if $dry_run { [--dry-run] } else { [] }
-  let result = ^$nu.current-exe --no-config-file $script ...$flags $template ($context.dir | path join generated.json) $context.path $paths
+  let result = ^$nu.current-exe --no-config-file $script ...$flags ($context.dir | path join generated.toml) ($context.dir | path join generated.json) $context.path $paths
     | complete
   if $result.exit_code != 0 { error make { msg: $result.stderr } }
   $result.stdout
@@ -96,6 +97,42 @@ def "writes nothing when the merge matches the file in place" [] {
 }
 
 @test
+def "writes nothing when OmniWM has laid out the same values its own way" [] {
+  let context = $in
+  cp $template $context.path
+  assert not equal (open --raw $context.path) (open --raw ($context.dir | path join generated.toml))
+
+  deploy $context --paths '[]'
+  deploy $context
+
+  assert equal (open --raw $context.path) (open --raw $template)
+  assert not ($"($context.path).bak" | path exists)
+}
+
+@test
+def "treats an integer from Nix and the equal float from OmniWM as the same value" [] {
+  let context = $in
+  $context.defaults | upsert borders.width 4.0 | to toml | save $context.path
+  let before = open --raw $context.path
+  $context.defaults | upsert borders.width 4 | to json | save --force ($context.dir | path join generated.json)
+
+  deploy $context
+
+  assert equal (open --raw $context.path) $before
+  assert not ($"($context.path).bak" | path exists)
+}
+
+@test
+def "rewrites a value outside the preserved paths" [] {
+  let context = $in
+  $context.defaults | upsert appearance.mode "changed" | to toml | save $context.path
+
+  deploy $context
+
+  assert equal (open --raw $context.path | from toml) $context.defaults
+}
+
+@test
 def "changes nothing on a dry run" [] {
   let context = $in
   $context.gui_toml | save $context.path
@@ -135,7 +172,7 @@ def "writes the generated TOML byte for byte when nothing is preserved" [] {
 
   deploy $context --paths '[]'
 
-  assert equal (open --raw $context.path) (open --raw $template)
+  assert equal (open --raw $context.path) (open --raw ($context.dir | path join generated.toml))
 }
 
 @test
