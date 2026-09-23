@@ -174,6 +174,7 @@ in
         Program = "${cfg.package}/Applications/OmniWM.app/Contents/MacOS/OmniWM";
         KeepAlive = lib.mkDefault { SuccessfulExit = false; };
         RunAtLoad = true;
+        EnvironmentVariables.XDG_CONFIG_HOME = config.xdg.configHome;
         StandardOutPath = "${config.home.homeDirectory}/Library/Logs/omniwm.log";
         StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/omniwm.err.log";
       };
