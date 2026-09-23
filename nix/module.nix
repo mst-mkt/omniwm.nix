@@ -47,6 +47,8 @@ let
   };
 
   settingsFile = tomlFormat.generate "omniwm-settings.toml" mergedSettings;
+  # Given a .toml file, nushell's `to toml` edits that file instead of writing the record afresh, and keeps its spacing (`[[monitorGapOverrides ]]`).
+  settingsJson = pkgs.writeText "omniwm-settings.json" (builtins.toJSON mergedSettings);
 
   preservedNames = builtins.filter (name: name != "schemaVersion") cfg.preserveSettings;
   preservedPaths = map (lib.splitString ".") preservedNames;
@@ -223,7 +225,7 @@ in
           lib.optionalString (preservedPaths != [ ]) ''
             settingsSource="$(mktemp)"
             ${lib.getExe pkgs.nushell} ${./preserve-settings.nu} \
-              ${settingsFile} "$omniwmSettings" "$settingsSource" \
+              ${settingsJson} "$omniwmSettings" "$settingsSource" \
               ${lib.escapeShellArg (builtins.toJSON preservedPaths)}
           ''
         }

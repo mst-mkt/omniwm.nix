@@ -12,7 +12,7 @@ def current-settings [live: path]: nothing -> record {
 
 # Layer the settings OmniWM owns at runtime over the generated ones.
 def main [
-  generated: path # settings.toml as the module generated it
+  generated: path # the settings the module generated, as JSON
   live: path # settings.toml as OmniWM currently has it
   out: path # where to write the merged settings
   paths: string # JSON key paths to take from <live>, e.g. [["routing"],["hiddenBar","hiddenBundleIDs"]]
@@ -27,7 +27,7 @@ def main [
       }
 
   open --raw $generated
-  | from toml
+  | from json
   | merge deep --strategy=overwrite $preserved
   | to toml
   | save --force $out
