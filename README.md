@@ -10,7 +10,8 @@ Home Manager ships its own [`programs.omniwm`](https://github.com/nix-community/
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `settings`              | Written as given. OmniWM rejects a `settings.toml` that is missing a required key, so the value has to spell out the whole schema. | Merged into [the default `settings.toml`](./settings-defaults.toml) of the packaged OmniWM version, so you write only what you change. The defaults are regenerated with every version bump, so new keys arrive with the package. |
 | `hotkeys`               | Written as given.                                                                                                                  | Merged per `id`. Unknown ids fail at evaluation, as OmniWM would otherwise reject the whole file silently at login.                                                                                                               |
-| `settings.toml` on disk | Symlink into the Nix store. OmniWM writes through the link, so it reports its writes as blocked.                                   | Writable copy, as OmniWM rewrites the file at startup. The previous file is kept as `settings.toml.bak`.                                                                                                                          |
+| Runtime changes         | Not saved while `settings` is declared, as OmniWM cannot write to the Nix store.                                                   | Saved, and kept across switches for the paths listed in `preserveSettings`.                                                                                                                                                       |
+| `settings.toml` on disk | Symlink into the Nix store.                                                                                                        | Writable copy, as OmniWM rewrites the file at startup. The previous file is kept as `settings.toml.bak`.                                                                                                                          |
 | Helpers                 | None.                                                                                                                              | `lib` for the parts that are tedious to write by hand, such as ids and colors.                                                                                                                                                    |
 
 ## Usage
@@ -34,6 +35,10 @@ in
 
   programs.omniwm = {
     enable = true;
+    preserveSettings = [
+      "monitors"
+      "routing"
+    ];
     settings = {
       general.defaultLayoutType = "dwindle";
       gaps.size = 12.0;
