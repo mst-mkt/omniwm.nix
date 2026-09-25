@@ -78,7 +78,8 @@ OmniWM rejects a settings file that is missing a required key, so `settings` is 
 - `hotkeys` must list every action exactly once, so its entries are merged per `id` instead of replacing the list. Unknown ids fail at evaluation.
 - Other lists (`workspaces`, `appRules`, `monitor*Overrides`) replace the defaults wholesale.
 - OmniWM rewrites the file at startup, so by default it is deployed as a writable copy.
-- Changes made at runtime (GUI, monitor overrides) are overwritten on the next activation unless the path is listed in `preserveSettings`. The previous file is kept as `settings.toml.bak`.
+- Changes made at runtime (GUI, monitor overrides) are overwritten on the next activation unless the path is listed in `preserveSettings`.
+- The file is replaced only when its settings values differ from the generated ones, and the previous file is then kept as `settings.toml.bak`.
 - The writable copy is written by the activation entry `omniwmSettings` (only with `mutableSettings`), which other entries can be ordered against.
 
 ### Keeping settings that OmniWM owns at runtime

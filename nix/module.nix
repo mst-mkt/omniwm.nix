@@ -134,7 +134,8 @@ in
       description = ''
         Whether {file}`settings.toml` is deployed as a writable copy that OmniWM can update, instead of a read-only symlink into the Nix store.
 
-        When true, changes made at runtime (GUI, monitor overrides) are overwritten on the next activation and the previous file is kept as {file}`settings.toml.bak`.
+        When true, changes made at runtime (GUI, monitor overrides) are overwritten on the next activation, except for the paths listed in `preserveSettings`.
+        The file is replaced only when its settings values differ from the generated ones, and the previous file is then kept as {file}`settings.toml.bak`.
 
         When false, OmniWM reports a persistent "Settings writes blocked" health warning and cannot persist runtime state or schema migrations.
       '';
