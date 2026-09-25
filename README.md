@@ -266,6 +266,14 @@ Feedback from real users is welcome. Please file it as an [issue](https://github
 
 `settings-defaults.toml` is the `settings.toml` that OmniWM writes on first launch. [codegen/generate-defaults.nu](./codegen/generate-defaults.nu) generates it from the upstream sources at the packaged tag. The Update workflow bumps the version and regenerates the file daily, so neither needs to be done by hand.
 
+## Acknowledgements
+
+Parts of this flake draw on the following configurations.
+
+- Home Manager's [`programs.omniwm`](https://github.com/nix-community/home-manager/blob/master/modules/programs/omniwm.nix)
+- [ryoppippi/dotfiles](https://github.com/ryoppippi/dotfiles/tree/main/nix/modules/darwin/programs/omniwm)
+- [ChrisPWill/system-nix](https://github.com/ChrisPWill/system-nix/tree/master/modules/home/desktop/wm/omniwm)
+
 ## License
 
 - [MIT](./LICENSE), unless noted below
