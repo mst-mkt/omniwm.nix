@@ -1,4 +1,4 @@
-# Generated from OmniWM v0.7.2 by codegen/generate-defaults.nu
+# Generated from OmniWM v0.7.3 by codegen/generate-defaults.nu
 monitorBarOverrides = []
 monitorDwindleOverrides = []
 monitorGapOverrides = []
@@ -22,6 +22,7 @@ red = 0.08458520228437894
 
 [clipboard]
 historyEnabled = false
+ignoredTypes = []
 maxItemBytes = 8388608
 maxItems = 200
 maxTotalBytes = 67108864
