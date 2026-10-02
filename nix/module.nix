@@ -71,10 +71,13 @@ let
   preservedNames = builtins.filter (name: name != "schemaVersion") cfg.preserveSettings;
   preservedPaths = map (lib.splitString ".") preservedNames;
   # Keys OmniWM accepts but the template lacks.
+  optionalSettingPaths = [
+    "general.language"
+    "monitors"
+  ];
   unknownPreservedPaths = builtins.filter (
     name:
-    name != "monitors"
-    && name != "general.language"
+    !(builtins.elem name optionalSettingPaths)
     && !(lib.hasAttrByPath (lib.splitString "." name) defaultSettings)
   ) preservedNames;
   declaredPreservedPaths = builtins.filter (
