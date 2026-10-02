@@ -72,8 +72,15 @@ let
   preservedPaths = map (lib.splitString ".") preservedNames;
   # Keys OmniWM accepts but the template lacks.
   optionalSettingPaths = [
+    "borders.darkColor"
+    "borders.glow"
+    "borders.gradient"
     "general.language"
     "monitors"
+    "overview.mouseButton"
+    "workspaceBar.accentColor"
+    "workspaceBar.inactiveIconOpacity"
+    "workspaceBar.textColor"
   ];
   unknownPreservedPaths = builtins.filter (
     name:
