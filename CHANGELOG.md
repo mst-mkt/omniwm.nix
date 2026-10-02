@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-03
+
+- The settings schema version follows OmniWM (3 -> 4). ([#22](https://github.com/mst-mkt/omniwm.nix/pull/22))
+- Part of the implementation follows OmniWM. ([#22](https://github.com/mst-mkt/omniwm.nix/pull/22))
+  - Hotkeys for workspaces above 9 are written to `settings.toml`.
+  - `preserveSettings` accepts `general.language`.
+
 ## 2026-09-23
 
 - **Breaking** `lib.monitorOverride` now requires `monitorDisplayUUID` or `monitorDisplayId`. Existing entries need one added, or the evaluation fails. ([#11](https://github.com/mst-mkt/omniwm.nix/pull/11))
