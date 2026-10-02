@@ -26,16 +26,33 @@ let
     hotkey: if builtins.isString (hotkey.binding or null) then hotkey.binding else "(no binding)"
   ) (builtins.filter (hotkey: !(hotkey ? id)) userHotkeys);
   knownHotkeyIds = map (hotkey: hotkey.id) defaultSettings.hotkeys;
+  # Workspaces from the 10th on have ids outside the template, e.g. `switchWorkspace.9`.
+  isWorkspaceNumberHotkeyId =
+    id:
+    builtins.match "(switchWorkspace|moveToWorkspace|moveColumnToWorkspace)\\.(9|[1-9][0-9]+)" id
+    != null;
   unknownHotkeyIds = map (hotkey: hotkey.id) (
-    builtins.filter (hotkey: hotkey ? id && !(builtins.elem hotkey.id knownHotkeyIds)) userHotkeys
+    builtins.filter (
+      hotkey:
+      hotkey ? id && !(builtins.elem hotkey.id knownHotkeyIds) && !(isWorkspaceNumberHotkeyId hotkey.id)
+    ) userHotkeys
   );
+  workspaceNumberHotkeys =
+    map
+      (id: {
+        inherit id;
+        binding = "Unassigned";
+      })
+      (
+        lib.unique (builtins.filter isWorkspaceNumberHotkeyId (map (hotkey: hotkey.id or "") userHotkeys))
+      );
   mergedHotkeys = map (
     default:
     let
       override = lib.findFirst (hotkey: hotkey.id == default.id) null userHotkeys;
     in
     if override == null then default else default // override
-  ) defaultSettings.hotkeys;
+  ) (defaultSettings.hotkeys ++ workspaceNumberHotkeys);
 
   # hotkeys are merged above; schemaVersion always comes from the template.
   userOverrides = removeAttrs userSettings [
@@ -175,7 +192,7 @@ in
           programs.omniwm: settings.hotkeys contains ids unknown to OmniWM ${
             cfg.package.version or "unknown"
           }: ${lib.concatStringsSep ", " unknownHotkeyIds}.
-          OmniWM rejects the entire settings file when it contains unknown hotkey ids; see settings-defaults.toml in the omniwm.nix flake for the known ids.'';
+          OmniWM rejects the entire settings file when it contains unknown hotkey ids; see settings-defaults.toml in the omniwm.nix flake for the known ids, plus `switchWorkspace.9` and the like for workspace 10 onward.'';
       }
       {
         assertion = cfg.settings == null || preservedNames == [ ] || cfg.mutableSettings;
