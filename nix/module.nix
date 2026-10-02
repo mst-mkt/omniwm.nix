@@ -70,9 +70,12 @@ let
 
   preservedNames = builtins.filter (name: name != "schemaVersion") cfg.preserveSettings;
   preservedPaths = map (lib.splitString ".") preservedNames;
-  # OmniWM leaves out the `monitors` table when `ranking` is empty, so the template has no such key.
+  # Keys OmniWM accepts but the template lacks.
   unknownPreservedPaths = builtins.filter (
-    name: name != "monitors" && !(lib.hasAttrByPath (lib.splitString "." name) defaultSettings)
+    name:
+    name != "monitors"
+    && name != "general.language"
+    && !(lib.hasAttrByPath (lib.splitString "." name) defaultSettings)
   ) preservedNames;
   declaredPreservedPaths = builtins.filter (
     name: lib.hasAttrByPath (lib.splitString "." name) userSettings
