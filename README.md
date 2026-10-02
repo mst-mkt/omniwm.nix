@@ -238,7 +238,7 @@ The ids are UUIDs derived from the inputs, so they stay the same across rebuilds
 
 OmniWM identifies workspaces by number, so `workspaces` takes `name` from the position in the list, and `assignToWorkspace` refers to that number rather than to `displayName`.
 
-Hotkey ids and their default bindings are listed in [settings-defaults.toml](./settings-defaults.toml). Bindings use OmniWM's own notation, such as `"Option+Shift+Left Arrow"`; OmniWM rejects the whole file when it cannot parse one.
+Hotkey ids and their default bindings are listed in [settings-defaults.toml](./settings-defaults.toml). Those for workspace 10 onward are not in that file, and are written as given. Bindings use OmniWM's own notation, such as `"Option+Shift+Left Arrow"`; OmniWM rejects the whole file when it cannot parse one.
 
 ## Binary cache
 
