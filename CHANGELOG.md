@@ -6,6 +6,7 @@
 - Part of the implementation follows OmniWM. ([#22](https://github.com/mst-mkt/omniwm.nix/pull/22))
   - Hotkeys for workspaces above 9 are written to `settings.toml`.
   - `preserveSettings` accepts `general.language`.
+- `preserveSettings` now accepts keys missing from [the default `settings.toml`](./settings-defaults.toml), such as `borders.glow` and `overview.mouseButton`. ([#23](https://github.com/mst-mkt/omniwm.nix/pull/23))
 
 ## 2026-09-23
 
