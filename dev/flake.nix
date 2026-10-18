@@ -14,6 +14,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nuten = {
+      url = "github:mst-mkt/nuten";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nutest = {
       url = "github:vyadh/nutest/v1.2.0";
       flake = false;
@@ -32,6 +37,8 @@
       treefmtEval = forAllSystems (
         system:
         inputs.treefmt-nix.lib.evalModule inputs.nixpkgs.legacyPackages.${system} {
+          imports = [ inputs.nuten.treefmtModule ];
+
           projectRootFile = "flake.nix";
 
           programs = {
@@ -40,6 +47,7 @@
             statix.enable = true;
             oxfmt.enable = true;
             swift-format.enable = true;
+            nuten.enable = true;
           };
         }
       );
@@ -67,6 +75,7 @@
           default = pkgs.mkShellNoCC {
             packages = [
               treefmtEval.${system}.config.build.wrapper
+              treefmtEval.${system}.config.programs.nuten.package
               pkgs.nushell
             ]
             ++ preCommit.${system}.enabledPackages;
