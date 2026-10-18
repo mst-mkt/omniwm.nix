@@ -16,9 +16,11 @@ def setup []: nothing -> record {
     monitorGapOverrides: [{ displayId: "37D8832A-2D66-02CA-B9F7-8F30A301B230", gap: 8.0 }]
     monitors: { ranking: ["37D8832A-2D66-02CA-B9F7-8F30A301B230"] }
     routing: { arrangements: [], mode: "custom" }
-    workspaceBar: ($defaults.workspaceBar
+    workspaceBar: (
+      $defaults.workspaceBar
       | upsert iconOverrides { "com.apple.Safari": "safari" }
-      | upsert height 99.0)
+      | upsert height 99.0
+    )
   }
 
   {
@@ -37,9 +39,19 @@ def cleanup [] {
 
 def deploy [context: record, --paths: string = $paths, --dry-run]: nothing -> string {
   let flags = if $dry_run { [--dry-run] } else { [] }
-  let result = ^$nu.current-exe --no-config-file $script ...$flags ($context.dir | path join generated.toml) ($context.dir | path join generated.json) $context.path $paths
-    | complete
-  if $result.exit_code != 0 { error make { msg: $result.stderr } }
+  let args = [
+    --no-config-file
+    $script
+    ...$flags
+    ($context.dir | path join generated.toml)
+    ($context.dir | path join generated.json)
+    $context.path
+    $paths
+  ]
+  let result = ^$nu.current-exe ...$args | complete
+  if $result.exit_code != 0 {
+    error make { msg: $result.stderr }
+  }
   $result.stdout
 }
 
@@ -100,7 +112,8 @@ def "writes nothing when the merge matches the file in place" [] {
 def "writes nothing when OmniWM has laid out the same values its own way" [] {
   let context = $in
   cp $template $context.path
-  assert not equal (open --raw $context.path) (open --raw ($context.dir | path join generated.toml))
+  let generated = $context.dir | path join generated.toml
+  assert not equal (open --raw $context.path) (open --raw $generated)
 
   deploy $context --paths '[]'
   deploy $context
@@ -112,9 +125,15 @@ def "writes nothing when OmniWM has laid out the same values its own way" [] {
 @test
 def "treats an integer from Nix and the equal float from OmniWM as the same value" [] {
   let context = $in
-  $context.defaults | upsert borders.width 4.0 | to toml | save $context.path
+  $context.defaults
+  | upsert borders.width 4.0
+  | to toml
+  | save $context.path
   let before = open --raw $context.path
-  $context.defaults | upsert borders.width 4 | to json | save --force ($context.dir | path join generated.json)
+  $context.defaults
+  | upsert borders.width 4
+  | to json
+  | save --force ($context.dir | path join generated.json)
 
   deploy $context
 

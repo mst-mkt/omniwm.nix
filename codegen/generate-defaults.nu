@@ -66,9 +66,12 @@ def main [] {
     [
       $"# Generated from OmniWM v($version) by codegen/generate-defaults.nu"
       (open --raw $generated)
-    ] | str join "\n" | save --force $out
+    ]
+    | str join "\n"
+    | save --force $out
+
     print $"wrote ($out)"
-  } catch { |err|
+  } catch {|err|
     print --stderr $"error: ($err.rendered)"
     print --stderr $"workdir kept at ($work)"
     exit 1

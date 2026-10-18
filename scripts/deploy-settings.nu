@@ -2,9 +2,13 @@
 
 # OmniWM ignores a settings file it cannot parse, so neither a missing nor a broken one is worth failing the switch over.
 def current-settings [live: path]: nothing -> record {
-  if not ($live | path exists) { return {} }
+  if not ($live | path exists) {
+    return {}
+  }
 
-  try { open --raw $live | from toml } catch {
+  try {
+    open --raw $live | from toml
+  } catch {
     print --stderr $"warning: ($live) is not valid TOML; replacing it with the generated settings"
     {}
   }
@@ -12,11 +16,7 @@ def current-settings [live: path]: nothing -> record {
 
 # Stands in for Home Manager's `run`, which nushell cannot call: on a dry run, print the command instead of running it.
 def run-or-print [dry_run: bool, command: list<string>] {
-  if $dry_run {
-    print ($command | str join " ")
-  } else {
-    run-external ...$command
-  }
+  if $dry_run { print ($command | str join " ") } else { run-external ...$command }
 }
 
 # Write the generated settings to <live>, with the settings OmniWM owns at runtime layered over them.
@@ -32,27 +32,33 @@ def main [
 
   let current = current-settings $live
   let preserved = $paths
-    | reduce --fold { } {|path, acc|
+    | reduce --fold {} {|path, acc|
         let key = $path | into cell-path
         let value = try { $current | get --optional $key } catch { null }
-        if $value == null { $acc } else { $acc | upsert $key $value }
+        if $value == null {
+          $acc
+        } else {
+          $acc | upsert $key $value
+        }
       }
   let merged = open --raw $generated_json
     | from json
     | merge deep --strategy=overwrite $preserved
 
-  if ($live | path exists) and $merged == $current { return }
+  if ($live | path exists) and $merged == $current {
+    return
+  }
 
   let source = mktemp --tmpdir omniwm-settings.XXXXXX
   if ($paths | is-empty) { open --raw $generated_toml } else { $merged | to toml }
   | save --force $source
-  run-or-print $dry_run [mkdir -p ($live | path dirname)]
+  run-or-print $dry_run [mkdir, -p, ($live | path dirname)]
   # install unlinks the destination first, so a symlinked .bak never has its target overwritten.
   if ($live | path exists) {
-    run-or-print $dry_run [install -T -m 644 $live $"($live).bak"]
+    run-or-print $dry_run [install, -T, -m, 644, $live, $"($live).bak"]
   }
   # OmniWM reloads on every change without debounce, so replace the file atomically.
-  run-or-print $dry_run [install -T -m 644 $source $"($live).tmp"]
-  run-or-print $dry_run [mv -fT $"($live).tmp" $live]
+  run-or-print $dry_run [install, -T, -m, 644, $source, $"($live).tmp"]
+  run-or-print $dry_run [mv, -fT, $"($live).tmp", $live]
   rm $source
 }
