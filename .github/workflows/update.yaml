@@ -35,9 +35,11 @@ jobs:
             access-tokens = github.com=${{ github.token }}
       - name: Update omniwm version
         id: bump
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           echo "old=$(nix eval --raw .#packages.aarch64-darwin.omniwm.version)" >> "$GITHUB_OUTPUT"
-          nix run --inputs-from . nixpkgs#nix-update -- --flake omniwm
+          nix run --inputs-from . nixpkgs#nix-update -- --flake omniwm --use-github-releases
           echo "new=$(nix eval --raw .#packages.aarch64-darwin.omniwm.version)" >> "$GITHUB_OUTPUT"
       - name: Build the updated package
         if: steps.bump.outputs.old != steps.bump.outputs.new
