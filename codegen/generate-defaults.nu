@@ -45,6 +45,9 @@ def "main build" [work: path] {
   print $"generating defaults template for OmniWM v($version)"
 
   cd $checkout
+  # `swift test --filter` still compiles every test, so remove upstream's.
+  # Fixtures must stay because Package.swift declares it as a resource.
+  rm Tests/OmniWMTests/**/*.swift
   cp ($script_dir | path join "GenerateDefaultsTemplateTests.swift") Tests/OmniWMTests/
 
   # ~/.swiftly/bin/swift is a proxy that picks the toolchain from .swift-version in the checkout
