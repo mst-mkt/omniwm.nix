@@ -11,6 +11,9 @@ let
   tomlFormat = pkgs.formats.toml { };
   settingsLib = import ./settings.nix { inherit lib; };
 
+  # userSettings reads cfg.settings, so check its results only while this holds.
+  managed = cfg.settings != null;
+
   defaultSettings = fromTOML (builtins.readFile ../../settings-defaults.toml);
 
   # Read derivations (writeText etc.) as files, not as attrsets.
@@ -134,13 +137,13 @@ in
     assertions = [
       (lib.hm.assertions.assertPlatform "programs.omniwm" pkgs lib.platforms.darwin)
       {
-        assertion = cfg.settings == null || hotkeys.withoutId == [ ];
+        assertion = !managed || hotkeys.withoutId == [ ];
         message = ''
           programs.omniwm: some settings.hotkeys entries have no `id`: ${lib.concatStringsSep ", " hotkeys.withoutId}.
           Hotkeys are matched to OmniWM's defaults by id; see settings-defaults.toml in the omniwm.nix flake for the known ids.'';
       }
       {
-        assertion = cfg.settings == null || hotkeys.unknownIds == [ ];
+        assertion = !managed || hotkeys.unknownIds == [ ];
         message = ''
           programs.omniwm: settings.hotkeys contains ids unknown to OmniWM ${
             cfg.package.version or "unknown"
@@ -148,7 +151,7 @@ in
           OmniWM rejects the entire settings file when it contains unknown hotkey ids; see settings-defaults.toml in the omniwm.nix flake for the known ids, plus ids built from a workspace number or a name of letters, digits, `.`, `_` and `-`, such as `switchWorkspace.9` for workspace 10 and `openApp.<bundle id>`.'';
       }
       {
-        assertion = cfg.settings == null || preserved.paths == [ ] || cfg.mutableSettings;
+        assertion = !managed || preserved.paths == [ ] || cfg.mutableSettings;
         message = ''
           programs.omniwm: preserveSettings requires mutableSettings = true.
           With mutableSettings = false, settings.toml is a read-only symlink into the Nix store, so OmniWM never persists the values you are asking to preserve.'';
@@ -162,7 +165,7 @@ in
           See settings-defaults.toml in the omniwm.nix flake for the known keys.'';
       }
       {
-        assertion = cfg.settings == null || preserved.declared == [ ];
+        assertion = !managed || preserved.declared == [ ];
         message = ''
           programs.omniwm: preserveSettings and settings both set ${lib.concatStringsSep ", " preserved.declared}.
           A preserved path is taken from the file OmniWM has, so the declared value would only survive until OmniWM first writes it. Set it in one of the two.'';
@@ -170,15 +173,15 @@ in
     ];
 
     warnings =
-      lib.optional (cfg.settings == null && preserved.paths != [ ])
+      lib.optional (!managed && preserved.paths != [ ])
         "programs.omniwm: preserveSettings has no effect while settings is null, because the settings file is left unmanaged and nothing overwrites it."
       ++
-        lib.optional (cfg.settings != null && userSettings ? schemaVersion)
+        lib.optional (managed && userSettings ? schemaVersion)
           "programs.omniwm: settings.schemaVersion is set, but it is managed by OmniWM (schema migrations) and will be ignored. Remove it from your settings."
       ++
-        lib.optional (cfg.settings != null && userSettings ? monitorRoutingOverrides)
+        lib.optional (managed && userSettings ? monitorRoutingOverrides)
           "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements."
-      ++ lib.optionals (cfg.settings != null) (
+      ++ lib.optionals managed (
         map (
           rename:
           "programs.omniwm: the hotkey id `${rename.from}` in settings.hotkeys has been renamed to `${rename.to}`."
@@ -187,13 +190,13 @@ in
 
     home.packages = [ cfg.package ];
 
-    xdg.configFile."omniwm/settings.toml" = lib.mkIf (cfg.settings != null && !cfg.mutableSettings) {
+    xdg.configFile."omniwm/settings.toml" = lib.mkIf (managed && !cfg.mutableSettings) {
       source = settingsFile;
     };
 
     # OmniWM rewrites the file at startup, so deploy a writable copy.
     # The launchd-started app never sees shell exports, so avoid $XDG_CONFIG_HOME.
-    home.activation.omniwmSettings = lib.mkIf (cfg.settings != null && cfg.mutableSettings) (
+    home.activation.omniwmSettings = lib.mkIf (managed && cfg.mutableSettings) (
       # Run after linkGeneration so a store symlink from mutableSettings = false is already removed.
       lib.hm.dag.entryAfter [ "writeBoundary" "linkGeneration" ] ''
         ${deploySettings} ''${DRY_RUN:+--dry-run} \
