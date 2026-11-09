@@ -91,7 +91,7 @@
           pkgs = inputs.nixpkgs.legacyPackages.${system};
           inherit (pkgs) lib;
 
-          libTestFailures = lib.runTests (
+          nixTestFailures = lib.runTests (
             import ../nix/lib-tests.nix {
               # lib.nix warns on purpose for the inputs the tests pass it.
               omniwm = import ../nix/lib.nix {
@@ -100,6 +100,7 @@
                 };
               };
             }
+            // import ../nix/module/settings-tests.nix { inherit lib; }
           );
 
           app = description: drv: {
@@ -109,9 +110,9 @@
           };
         in
         {
-          test = app "Run the lib and nushell tests" (
-            lib.throwIf (libTestFailures != [ ])
-              "lib tests failed:\n${lib.generators.toPretty { } libTestFailures}"
+          test = app "Run the Nix and nushell tests" (
+            lib.throwIf (nixTestFailures != [ ])
+              "Nix tests failed:\n${lib.generators.toPretty { } nixTestFailures}"
               (
                 pkgs.writeShellApplication {
                   name = "omniwm-test";
