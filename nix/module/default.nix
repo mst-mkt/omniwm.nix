@@ -172,21 +172,29 @@ in
       }
     ];
 
-    warnings =
-      lib.optional (!managed && preserved.paths != [ ])
-        "programs.omniwm: preserveSettings has no effect while settings is null, because the settings file is left unmanaged and nothing overwrites it."
-      ++
-        lib.optional (managed && userSettings ? schemaVersion)
-          "programs.omniwm: settings.schemaVersion is set, but it is managed by OmniWM (schema migrations) and will be ignored. Remove it from your settings."
-      ++
-        lib.optional (managed && userSettings ? monitorRoutingOverrides)
-          "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements."
-      ++ lib.optionals managed (
-        map (
-          rename:
-          "programs.omniwm: the hotkey id `${rename.from}` in settings.hotkeys has been renamed to `${rename.to}`."
-        ) hotkeys.renamed
-      );
+    # same shape as assertions, kept when `condition` holds
+    warnings = map (warning: warning.message) (
+      builtins.filter (warning: warning.condition) (
+        [
+          {
+            condition = !managed && preserved.paths != [ ];
+            message = "programs.omniwm: preserveSettings has no effect while settings is null, because the settings file is left unmanaged and nothing overwrites it.";
+          }
+          {
+            condition = managed && userSettings ? schemaVersion;
+            message = "programs.omniwm: settings.schemaVersion is set, but it is managed by OmniWM (schema migrations) and will be ignored. Remove it from your settings.";
+          }
+          {
+            condition = managed && userSettings ? monitorRoutingOverrides;
+            message = "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements.";
+          }
+        ]
+        ++ map (rename: {
+          condition = managed;
+          message = "programs.omniwm: the hotkey id `${rename.from}` in settings.hotkeys has been renamed to `${rename.to}`.";
+        }) hotkeys.renamed
+      )
+    );
 
     home.packages = [ cfg.package ];
 
