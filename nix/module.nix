@@ -43,33 +43,38 @@ let
     hotkey: if builtins.isString (hotkey.binding or null) then hotkey.binding else "(no binding)"
   ) (builtins.filter (hotkey: !(hotkey ? id)) userHotkeys);
   knownHotkeyIds = map (hotkey: hotkey.id) defaultSettings.hotkeys;
-  # Workspaces from the 10th on have ids outside the template, e.g. `switchWorkspace.9`.
-  isWorkspaceNumberHotkeyId =
-    id:
-    builtins.match "(switchWorkspace|moveToWorkspace|moveColumnToWorkspace)\\.(9|[1-9][0-9]+)" id
-    != null;
+
+  # Hotkey ids OmniWM builds from a workspace number or a name, e.g. `switchWorkspace.9` for workspace 10.
+  # Narrower than OmniWM's own checks, because OmniWM rejects the entire settings file over a single invalid id.
+  dynamicHotkeyIdPatterns = [
+    "(switchWorkspace|moveToWorkspace|moveColumnToWorkspace)\\.(9|[1-9][0-9]{1,17})"
+    "(toggleShellWidget|openApp|openShellApp|newShellAppWindow)\\.[A-Za-z0-9][A-Za-z0-9._-]{0,127}"
+  ];
+  isDynamicHotkeyId =
+    id: builtins.any (pattern: builtins.match pattern id != null) dynamicHotkeyIdPatterns;
+
   unknownHotkeyIds = map (hotkey: hotkey.id) (
     builtins.filter (
-      hotkey:
-      hotkey ? id && !(builtins.elem hotkey.id knownHotkeyIds) && !(isWorkspaceNumberHotkeyId hotkey.id)
+      hotkey: hotkey ? id && !(builtins.elem hotkey.id knownHotkeyIds) && !(isDynamicHotkeyId hotkey.id)
     ) userHotkeys
   );
-  workspaceNumberHotkeys =
-    map
-      (id: {
-        inherit id;
-        binding = "Unassigned";
-      })
-      (
-        lib.unique (builtins.filter isWorkspaceNumberHotkeyId (map (hotkey: hotkey.id or "") userHotkeys))
-      );
+  # Only ids the template lacks, since it already has `openShellApp.example` and OmniWM rejects an id listed twice.
+  dynamicHotkeyIds = lib.unique (
+    lib.subtractLists knownHotkeyIds (
+      builtins.filter isDynamicHotkeyId (map (hotkey: hotkey.id or "") userHotkeys)
+    )
+  );
+  dynamicHotkeys = map (id: {
+    inherit id;
+    binding = "Unassigned";
+  }) dynamicHotkeyIds;
   mergedHotkeys = map (
     default:
     let
       override = lib.findFirst (hotkey: hotkey.id == default.id) null userHotkeys;
     in
     if override == null then default else default // override
-  ) (defaultSettings.hotkeys ++ workspaceNumberHotkeys);
+  ) (defaultSettings.hotkeys ++ dynamicHotkeys);
 
   # hotkeys are merged above; schemaVersion always comes from the template.
   userOverrides = removeAttrs userSettings [
@@ -230,7 +235,7 @@ in
           programs.omniwm: settings.hotkeys contains ids unknown to OmniWM ${
             cfg.package.version or "unknown"
           }: ${lib.concatStringsSep ", " unknownHotkeyIds}.
-          OmniWM rejects the entire settings file when it contains unknown hotkey ids; see settings-defaults.toml in the omniwm.nix flake for the known ids, plus `switchWorkspace.9` and the like for workspace 10 onward.'';
+          OmniWM rejects the entire settings file when it contains unknown hotkey ids; see settings-defaults.toml in the omniwm.nix flake for the known ids, plus ids built from a workspace number or a name of letters, digits, `.`, `_` and `-`, such as `switchWorkspace.9` for workspace 10 and `openApp.<bundle id>`.'';
       }
       {
         assertion = cfg.settings == null || preservedNames == [ ] || cfg.mutableSettings;
