@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-09
+
+- The settings schema version follows OmniWM (4 -> 5). ([#31](https://github.com/mst-mkt/omniwm.nix/pull/31))
+- Part of the implementation follows OmniWM. ([#31](https://github.com/mst-mkt/omniwm.nix/pull/31))
+  - Hotkey ids that OmniWM renamed, such as `setContainerPrimarySpan.decrease10Percent`, are read as the new ones with a warning.
+  - Hotkey ids that OmniWM builds from a name, such as `openApp.<bundle id>`, are accepted.
+  - `preserveSettings` accepts `quakeTerminal.kitty`, `quakeTerminal.foot` and `keyboardModes.pauseTimeoutSeconds`.
+
 ## 2026-10-03
 
 - The settings schema version follows OmniWM (3 -> 4). ([#22](https://github.com/mst-mkt/omniwm.nix/pull/22))
