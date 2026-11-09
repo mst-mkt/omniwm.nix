@@ -9,117 +9,30 @@
 let
   cfg = config.programs.omniwm;
   tomlFormat = pkgs.formats.toml { };
+  settingsLib = import ./settings.nix { inherit lib; };
 
-  # OmniWM rejects partial settings files, so user settings are merged over the full defaults template.
-  defaultSettings = fromTOML (builtins.readFile ../settings-defaults.toml);
+  managed = cfg.settings != null;
+
+  defaultSettings = fromTOML (builtins.readFile ../../settings-defaults.toml);
 
   # Read derivations (writeText etc.) as files, not as attrsets.
   userSettings =
-    if builtins.isAttrs cfg.settings && !lib.isDerivation cfg.settings then
+    if !managed then
+      { }
+    else if builtins.isAttrs cfg.settings && !lib.isDerivation cfg.settings then
       cfg.settings
     else
       fromTOML (builtins.readFile cfg.settings);
 
-  # Hotkey ids OmniWM renames in its own migration, which never runs because schemaVersion comes from the template.
-  renamedHotkeyIds = {
-    "setContainerPrimarySpan.decrease10Percent" = "resizeContainerPrimarySpan.shrink";
-    "setContainerPrimarySpan.increase10Percent" = "resizeContainerPrimarySpan.grow";
-    "setWindowPrimarySpan.decrease10Percent" = "resizeWindowPrimarySpan.shrink";
-    "setWindowPrimarySpan.increase10Percent" = "resizeWindowPrimarySpan.grow";
-    "setWindowSecondarySpan.decrease10Percent" = "resizeWindowSecondarySpan.shrink";
-    "setWindowSecondarySpan.increase10Percent" = "resizeWindowSecondarySpan.grow";
-  };
-
-  declaredHotkeys = userSettings.hotkeys or [ ];
-  hasOldId = hotkey: renamedHotkeyIds ? ${hotkey.id or ""};
-  withNewId = hotkey: hotkey // { id = renamedHotkeyIds.${hotkey.id}; };
-  hotkeysWithOldId = builtins.filter hasOldId declaredHotkeys;
-
-  # OmniWM requires the full list of known hotkey ids, so merge per id.
-  # Entries with an old id go last, so the merge below picks one already using the new id, as OmniWM's migration does.
-  userHotkeys =
-    builtins.filter (hotkey: !hasOldId hotkey) declaredHotkeys ++ map withNewId hotkeysWithOldId;
-  hotkeysWithoutId = map (
-    hotkey: if builtins.isString (hotkey.binding or null) then hotkey.binding else "(no binding)"
-  ) (builtins.filter (hotkey: !(hotkey ? id)) userHotkeys);
-  knownHotkeyIds = map (hotkey: hotkey.id) defaultSettings.hotkeys;
-
-  # Hotkey ids OmniWM builds from a workspace number or a name, e.g. `switchWorkspace.9` for workspace 10.
-  # Narrower than OmniWM's own checks, because OmniWM rejects the entire settings file over a single invalid id.
-  dynamicHotkeyIdPatterns = [
-    "(switchWorkspace|moveToWorkspace|moveColumnToWorkspace)\\.(9|[1-9][0-9]{1,17})"
-    "(toggleShellWidget|openApp|openShellApp|newShellAppWindow)\\.[A-Za-z0-9][A-Za-z0-9._-]{0,127}"
-  ];
-  isDynamicHotkeyId =
-    id: builtins.any (pattern: builtins.match pattern id != null) dynamicHotkeyIdPatterns;
-
-  unknownHotkeyIds = map (hotkey: hotkey.id) (
-    builtins.filter (
-      hotkey: hotkey ? id && !(builtins.elem hotkey.id knownHotkeyIds) && !(isDynamicHotkeyId hotkey.id)
-    ) userHotkeys
-  );
-  # Only ids the template lacks, since it already has `openShellApp.example` and OmniWM rejects an id listed twice.
-  dynamicHotkeyIds = lib.unique (
-    lib.subtractLists knownHotkeyIds (
-      builtins.filter isDynamicHotkeyId (map (hotkey: hotkey.id or "") userHotkeys)
-    )
-  );
-  dynamicHotkeys = map (id: {
-    inherit id;
-    binding = "Unassigned";
-  }) dynamicHotkeyIds;
-  mergedHotkeys = map (
-    default:
-    let
-      override = lib.findFirst (hotkey: hotkey.id == default.id) null userHotkeys;
-    in
-    if override == null then default else default // override
-  ) (defaultSettings.hotkeys ++ dynamicHotkeys);
-
-  # hotkeys are merged above; schemaVersion always comes from the template.
-  userOverrides = removeAttrs userSettings [
-    "hotkeys"
-    "schemaVersion"
-  ];
-  mergedSettings = lib.recursiveUpdate defaultSettings userOverrides // {
-    hotkeys = mergedHotkeys;
-  };
+  hotkeys = settingsLib.hotkeys defaultSettings.hotkeys (userSettings.hotkeys or [ ]);
+  mergedSettings = settingsLib.merge defaultSettings userSettings;
 
   settingsFile = tomlFormat.generate "omniwm-settings.toml" mergedSettings;
   # Given a .toml file, nushell's `to toml` edits that file instead of writing the record afresh, and keeps its spacing (`[[monitorGapOverrides ]]`).
   settingsJson = pkgs.writeText "omniwm-settings.json" (builtins.toJSON mergedSettings);
-  deploySettings = pkgs.writers.writeNu "omniwm-deploy-settings" ../scripts/deploy-settings.nu;
+  deploySettings = pkgs.writers.writeNu "omniwm-deploy-settings" ../../scripts/deploy-settings.nu;
 
-  preservedNames = builtins.filter (name: name != "schemaVersion") cfg.preserveSettings;
-  preservedPaths = map (lib.splitString ".") preservedNames;
-  # Keys OmniWM accepts but the template lacks.
-  optionalSettingPaths = [
-    "borders.darkColor"
-    "borders.glow"
-    "borders.gradient"
-    "general.language"
-    "keyboardModes.pauseTimeoutSeconds"
-    "monitorBarOverrides"
-    "monitorDwindleOverrides"
-    "monitorGapOverrides"
-    "monitorNiriOverrides"
-    "monitorOrientationOverrides"
-    "monitors"
-    "overview.mouseButton"
-    "quakeTerminal.foot"
-    "quakeTerminal.kitty"
-    "workspaceBar.accentColor"
-    "workspaceBar.inactiveIconOpacity"
-    "workspaceBar.textColor"
-  ];
-  unknownPreservedPaths = builtins.filter (
-    name:
-    !(builtins.elem name optionalSettingPaths)
-    && !(lib.hasAttrByPath (lib.splitString "." name) defaultSettings)
-  ) preservedNames;
-  declaredPreservedPaths = builtins.filter (
-    name: lib.hasAttrByPath (lib.splitString "." name) userSettings
-  ) preservedNames;
+  preserved = settingsLib.preserved defaultSettings userSettings cfg.preserveSettings;
 in
 
 {
@@ -130,8 +43,8 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = pkgs.callPackage ./package.nix { };
-      defaultText = lib.literalExpression "pkgs.callPackage ./package.nix { }";
+      default = pkgs.callPackage ../package.nix { };
+      defaultText = lib.literalExpression "pkgs.callPackage ../package.nix { }";
       description = "The OmniWM package to use.";
     };
 
@@ -225,71 +138,79 @@ in
     assertions = [
       (lib.hm.assertions.assertPlatform "programs.omniwm" pkgs lib.platforms.darwin)
       {
-        assertion = cfg.settings == null || hotkeysWithoutId == [ ];
+        assertion = !managed || hotkeys.withoutId == [ ];
         message = ''
-          programs.omniwm: some settings.hotkeys entries have no `id`: ${lib.concatStringsSep ", " hotkeysWithoutId}.
+          programs.omniwm: some settings.hotkeys entries have no `id`: ${lib.concatStringsSep ", " hotkeys.withoutId}.
           Hotkeys are matched to OmniWM's defaults by id; see settings-defaults.toml in the omniwm.nix flake for the known ids.'';
       }
       {
-        assertion = cfg.settings == null || unknownHotkeyIds == [ ];
+        assertion = !managed || hotkeys.unknownIds == [ ];
         message = ''
           programs.omniwm: settings.hotkeys contains ids unknown to OmniWM ${
             cfg.package.version or "unknown"
-          }: ${lib.concatStringsSep ", " unknownHotkeyIds}.
+          }: ${lib.concatStringsSep ", " hotkeys.unknownIds}.
           OmniWM rejects the entire settings file when it contains unknown hotkey ids; see settings-defaults.toml in the omniwm.nix flake for the known ids, plus ids built from a workspace number or a name of letters, digits, `.`, `_` and `-`, such as `switchWorkspace.9` for workspace 10 and `openApp.<bundle id>`.'';
       }
       {
-        assertion = cfg.settings == null || preservedNames == [ ] || cfg.mutableSettings;
+        assertion = !managed || preserved.paths == [ ] || cfg.mutableSettings;
         message = ''
           programs.omniwm: preserveSettings requires mutableSettings = true.
           With mutableSettings = false, settings.toml is a read-only symlink into the Nix store, so OmniWM never persists the values you are asking to preserve.'';
       }
       {
-        assertion = unknownPreservedPaths == [ ];
+        assertion = preserved.unknown == [ ];
         message = ''
           programs.omniwm: preserveSettings contains paths unknown to OmniWM ${
             cfg.package.version or "unknown"
-          }: ${lib.concatStringsSep ", " unknownPreservedPaths}.
+          }: ${lib.concatStringsSep ", " preserved.unknown}.
           See settings-defaults.toml in the omniwm.nix flake for the known keys.'';
       }
       {
-        assertion = cfg.settings == null || declaredPreservedPaths == [ ];
+        assertion = !managed || preserved.declared == [ ];
         message = ''
-          programs.omniwm: preserveSettings and settings both set ${lib.concatStringsSep ", " declaredPreservedPaths}.
+          programs.omniwm: preserveSettings and settings both set ${lib.concatStringsSep ", " preserved.declared}.
           A preserved path is taken from the file OmniWM has, so the declared value would only survive until OmniWM first writes it. Set it in one of the two.'';
       }
     ];
 
-    warnings =
-      lib.optional (cfg.settings == null && preservedNames != [ ])
-        "programs.omniwm: preserveSettings has no effect while settings is null, because the settings file is left unmanaged and nothing overwrites it."
-      ++
-        lib.optional (cfg.settings != null && userSettings ? schemaVersion)
-          "programs.omniwm: settings.schemaVersion is set, but it is managed by OmniWM (schema migrations) and will be ignored. Remove it from your settings."
-      ++
-        lib.optional (cfg.settings != null && userSettings ? monitorRoutingOverrides)
-          "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements."
-      ++ lib.optionals (cfg.settings != null) (
-        map (
-          hotkey:
-          "programs.omniwm: the hotkey id `${hotkey.id}` in settings.hotkeys has been renamed to `${renamedHotkeyIds.${hotkey.id}}`."
-        ) hotkeysWithOldId
-      );
+    # same shape as assertions, kept when `condition` holds
+    warnings = map (warning: warning.message) (
+      builtins.filter (warning: warning.condition) (
+        [
+          {
+            condition = !managed && preserved.paths != [ ];
+            message = "programs.omniwm: preserveSettings has no effect while settings is null, because the settings file is left unmanaged and nothing overwrites it.";
+          }
+          {
+            condition = managed && userSettings ? schemaVersion;
+            message = "programs.omniwm: settings.schemaVersion is set, but it is managed by OmniWM (schema migrations) and will be ignored. Remove it from your settings.";
+          }
+          {
+            condition = managed && userSettings ? monitorRoutingOverrides;
+            message = "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements.";
+          }
+        ]
+        ++ map (rename: {
+          condition = managed;
+          message = "programs.omniwm: the hotkey id `${rename.from}` in settings.hotkeys has been renamed to `${rename.to}`.";
+        }) hotkeys.renamed
+      )
+    );
 
     home.packages = [ cfg.package ];
 
-    xdg.configFile."omniwm/settings.toml" = lib.mkIf (cfg.settings != null && !cfg.mutableSettings) {
+    xdg.configFile."omniwm/settings.toml" = lib.mkIf (managed && !cfg.mutableSettings) {
       source = settingsFile;
     };
 
     # OmniWM rewrites the file at startup, so deploy a writable copy.
     # The launchd-started app never sees shell exports, so avoid $XDG_CONFIG_HOME.
-    home.activation.omniwmSettings = lib.mkIf (cfg.settings != null && cfg.mutableSettings) (
+    home.activation.omniwmSettings = lib.mkIf (managed && cfg.mutableSettings) (
       # Run after linkGeneration so a store symlink from mutableSettings = false is already removed.
       lib.hm.dag.entryAfter [ "writeBoundary" "linkGeneration" ] ''
         ${deploySettings} ''${DRY_RUN:+--dry-run} \
           ${settingsFile} ${settingsJson} ${lib.escapeShellArg "${config.xdg.configHome}/omniwm/settings.toml"} \
-          ${lib.escapeShellArg (builtins.toJSON preservedPaths)}
+          ${lib.escapeShellArg (builtins.toJSON preserved.paths)}
       ''
     );
 

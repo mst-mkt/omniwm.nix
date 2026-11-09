@@ -269,7 +269,7 @@ Feedback from real users is welcome. Please file it as an [issue](https://github
 | Command                           | Purpose                                                                                                                                                  |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `nix run ./dev#format`            | Format.                                                                                                                                                  |
-| `nix run ./dev#test`              | lib and nushell tests.                                                                                                                                   |
+| `nix run ./dev#test`              | Nix and nushell tests.                                                                                                                                   |
 | `nix run ./dev#generate-defaults` | Regenerate `settings-defaults.toml`. Needs a Mac that meets OmniWM's [build requirements](https://github.com/OmniNull/OmniWM/blob/main/CONTRIBUTING.md). |
 | `nix flake check ./dev`           | Format check and tests, as CI runs them.                                                                                                                 |
 
