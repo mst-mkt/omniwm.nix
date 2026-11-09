@@ -24,7 +24,7 @@
         omniwm = final.callPackage ./nix/package.nix { };
       };
 
-      homeManagerModules.default = ./nix/module.nix;
+      homeManagerModules.default = ./nix/module;
 
       lib = omniwmLib;
     };
