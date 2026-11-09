@@ -20,8 +20,25 @@ let
     else
       fromTOML (builtins.readFile cfg.settings);
 
+  # Hotkey ids OmniWM renames in its own migration, which never runs because schemaVersion comes from the template.
+  renamedHotkeyIds = {
+    "setContainerPrimarySpan.decrease10Percent" = "resizeContainerPrimarySpan.shrink";
+    "setContainerPrimarySpan.increase10Percent" = "resizeContainerPrimarySpan.grow";
+    "setWindowPrimarySpan.decrease10Percent" = "resizeWindowPrimarySpan.shrink";
+    "setWindowPrimarySpan.increase10Percent" = "resizeWindowPrimarySpan.grow";
+    "setWindowSecondarySpan.decrease10Percent" = "resizeWindowSecondarySpan.shrink";
+    "setWindowSecondarySpan.increase10Percent" = "resizeWindowSecondarySpan.grow";
+  };
+
+  declaredHotkeys = userSettings.hotkeys or [ ];
+  hasOldId = hotkey: renamedHotkeyIds ? ${hotkey.id or ""};
+  withNewId = hotkey: hotkey // { id = renamedHotkeyIds.${hotkey.id}; };
+  hotkeysWithOldId = builtins.filter hasOldId declaredHotkeys;
+
   # OmniWM requires the full list of known hotkey ids, so merge per id.
-  userHotkeys = userSettings.hotkeys or [ ];
+  # Entries with an old id go last, so the merge below picks one already using the new id, as OmniWM's migration does.
+  userHotkeys =
+    builtins.filter (hotkey: !hasOldId hotkey) declaredHotkeys ++ map withNewId hotkeysWithOldId;
   hotkeysWithoutId = map (
     hotkey: if builtins.isString (hotkey.binding or null) then hotkey.binding else "(no binding)"
   ) (builtins.filter (hotkey: !(hotkey ? id)) userHotkeys);
@@ -245,7 +262,13 @@ in
           "programs.omniwm: settings.schemaVersion is set, but it is managed by OmniWM (schema migrations) and will be ignored. Remove it from your settings."
       ++
         lib.optional (cfg.settings != null && userSettings ? monitorRoutingOverrides)
-          "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements.";
+          "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements."
+      ++ lib.optionals (cfg.settings != null) (
+        map (
+          hotkey:
+          "programs.omniwm: the hotkey id `${hotkey.id}` in settings.hotkeys has been renamed to `${renamedHotkeyIds.${hotkey.id}}`."
+        ) hotkeysWithOldId
+      );
 
     home.packages = [ cfg.package ];
 
