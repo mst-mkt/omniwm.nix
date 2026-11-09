@@ -9,7 +9,7 @@ Home Manager ships its own [`programs.omniwm`](https://github.com/nix-community/
 |                         | Home Manager built-in                                                                                                              | This flake                                                                                                                                                                                                                        |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `settings`              | Written as given. OmniWM rejects a `settings.toml` that is missing a required key, so the value has to spell out the whole schema. | Merged into [the default `settings.toml`](./settings-defaults.toml) of the packaged OmniWM version, so you write only what you change. The defaults are regenerated with every version bump, so new keys arrive with the package. |
-| `hotkeys`               | Written as given.                                                                                                                  | Merged per `id`. Unknown ids fail at evaluation, as OmniWM would otherwise reject the whole file silently at login.                                                                                                               |
+| `hotkeys`               | Written as given.                                                                                                                  | Merged per `id`. Unknown ids fail at evaluation, as OmniWM would otherwise reject the whole file at login.                                                                                                                        |
 | Runtime changes         | Not saved while `settings` is declared, as OmniWM cannot write to the Nix store.                                                   | Saved, and kept across switches for the paths listed in `preserveSettings`.                                                                                                                                                       |
 | `settings.toml` on disk | Symlink into the Nix store.                                                                                                        | Writable copy, as OmniWM rewrites the file at startup. The previous file is kept as `settings.toml.bak`.                                                                                                                          |
 | Helpers                 | None.                                                                                                                              | `lib` for the parts that are tedious to write by hand, such as ids and colors.                                                                                                                                                    |
@@ -91,7 +91,7 @@ OmniWM rejects a settings file that is missing a required key, so `settings` is 
 
 `preserveSettings` takes dot-separated paths into `settings.toml`. Each activation keeps the value the file already holds at those paths, instead of replacing it with the generated one.
 
-Use it for the settings that are easier to make on the machine than to declare. `lib.monitor.*` and `lib.routingArrangement` can declare them too, but each entry needs the display's UUID read off the machine first.
+Use it for the settings that are easier to make on the machine than to declare, such as the per-display settings and the OmniShell permissions. `lib.monitor.*` and `lib.routingArrangement` can declare the per-display settings too, but each entry needs the display's UUID read off the machine first.
 
 Those settings live under these paths.
 
@@ -104,6 +104,7 @@ programs.omniwm.preserveSettings = [
   "monitorOrientationOverrides"
   "monitors"
   "routing"
+  "shellPermissions"
 ];
 ```
 
@@ -238,7 +239,9 @@ The ids are UUIDs derived from the inputs, so they stay the same across rebuilds
 
 OmniWM identifies workspaces by number, so `workspaces` takes `name` from the position in the list, and `assignToWorkspace` refers to that number rather than to `displayName`.
 
-Hotkey ids and their default bindings are listed in [settings-defaults.toml](./settings-defaults.toml). Those for workspace 10 onward are not in that file, and are written as given. Bindings use OmniWM's own notation, such as `"Option+Shift+Left Arrow"`; OmniWM rejects the whole file when it cannot parse one.
+Hotkey ids are listed in [settings-defaults.toml](./settings-defaults.toml). Ids that OmniWM builds from a number or a name are missing from that file but accepted as well, such as `switchWorkspace.9` for workspace 10 and `openApp.<bundle id>` to open an app.
+
+Bindings use OmniWM's own notation, such as `"Option+Shift+Left Arrow"`; OmniWM rejects the whole file when it cannot parse one.
 
 ## Binary cache
 

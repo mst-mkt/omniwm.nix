@@ -20,39 +20,61 @@ let
     else
       fromTOML (builtins.readFile cfg.settings);
 
+  # Hotkey ids OmniWM renames in its own migration, which never runs because schemaVersion comes from the template.
+  renamedHotkeyIds = {
+    "setContainerPrimarySpan.decrease10Percent" = "resizeContainerPrimarySpan.shrink";
+    "setContainerPrimarySpan.increase10Percent" = "resizeContainerPrimarySpan.grow";
+    "setWindowPrimarySpan.decrease10Percent" = "resizeWindowPrimarySpan.shrink";
+    "setWindowPrimarySpan.increase10Percent" = "resizeWindowPrimarySpan.grow";
+    "setWindowSecondarySpan.decrease10Percent" = "resizeWindowSecondarySpan.shrink";
+    "setWindowSecondarySpan.increase10Percent" = "resizeWindowSecondarySpan.grow";
+  };
+
+  declaredHotkeys = userSettings.hotkeys or [ ];
+  hasOldId = hotkey: renamedHotkeyIds ? ${hotkey.id or ""};
+  withNewId = hotkey: hotkey // { id = renamedHotkeyIds.${hotkey.id}; };
+  hotkeysWithOldId = builtins.filter hasOldId declaredHotkeys;
+
   # OmniWM requires the full list of known hotkey ids, so merge per id.
-  userHotkeys = userSettings.hotkeys or [ ];
+  # Entries with an old id go last, so the merge below picks one already using the new id, as OmniWM's migration does.
+  userHotkeys =
+    builtins.filter (hotkey: !hasOldId hotkey) declaredHotkeys ++ map withNewId hotkeysWithOldId;
   hotkeysWithoutId = map (
     hotkey: if builtins.isString (hotkey.binding or null) then hotkey.binding else "(no binding)"
   ) (builtins.filter (hotkey: !(hotkey ? id)) userHotkeys);
   knownHotkeyIds = map (hotkey: hotkey.id) defaultSettings.hotkeys;
-  # Workspaces from the 10th on have ids outside the template, e.g. `switchWorkspace.9`.
-  isWorkspaceNumberHotkeyId =
-    id:
-    builtins.match "(switchWorkspace|moveToWorkspace|moveColumnToWorkspace)\\.(9|[1-9][0-9]+)" id
-    != null;
+
+  # Hotkey ids OmniWM builds from a workspace number or a name, e.g. `switchWorkspace.9` for workspace 10.
+  # Narrower than OmniWM's own checks, because OmniWM rejects the entire settings file over a single invalid id.
+  dynamicHotkeyIdPatterns = [
+    "(switchWorkspace|moveToWorkspace|moveColumnToWorkspace)\\.(9|[1-9][0-9]{1,17})"
+    "(toggleShellWidget|openApp|openShellApp|newShellAppWindow)\\.[A-Za-z0-9][A-Za-z0-9._-]{0,127}"
+  ];
+  isDynamicHotkeyId =
+    id: builtins.any (pattern: builtins.match pattern id != null) dynamicHotkeyIdPatterns;
+
   unknownHotkeyIds = map (hotkey: hotkey.id) (
     builtins.filter (
-      hotkey:
-      hotkey ? id && !(builtins.elem hotkey.id knownHotkeyIds) && !(isWorkspaceNumberHotkeyId hotkey.id)
+      hotkey: hotkey ? id && !(builtins.elem hotkey.id knownHotkeyIds) && !(isDynamicHotkeyId hotkey.id)
     ) userHotkeys
   );
-  workspaceNumberHotkeys =
-    map
-      (id: {
-        inherit id;
-        binding = "Unassigned";
-      })
-      (
-        lib.unique (builtins.filter isWorkspaceNumberHotkeyId (map (hotkey: hotkey.id or "") userHotkeys))
-      );
+  # Only ids the template lacks, since it already has `openShellApp.example` and OmniWM rejects an id listed twice.
+  dynamicHotkeyIds = lib.unique (
+    lib.subtractLists knownHotkeyIds (
+      builtins.filter isDynamicHotkeyId (map (hotkey: hotkey.id or "") userHotkeys)
+    )
+  );
+  dynamicHotkeys = map (id: {
+    inherit id;
+    binding = "Unassigned";
+  }) dynamicHotkeyIds;
   mergedHotkeys = map (
     default:
     let
       override = lib.findFirst (hotkey: hotkey.id == default.id) null userHotkeys;
     in
     if override == null then default else default // override
-  ) (defaultSettings.hotkeys ++ workspaceNumberHotkeys);
+  ) (defaultSettings.hotkeys ++ dynamicHotkeys);
 
   # hotkeys are merged above; schemaVersion always comes from the template.
   userOverrides = removeAttrs userSettings [
@@ -76,8 +98,16 @@ let
     "borders.glow"
     "borders.gradient"
     "general.language"
+    "keyboardModes.pauseTimeoutSeconds"
+    "monitorBarOverrides"
+    "monitorDwindleOverrides"
+    "monitorGapOverrides"
+    "monitorNiriOverrides"
+    "monitorOrientationOverrides"
     "monitors"
     "overview.mouseButton"
+    "quakeTerminal.foot"
+    "quakeTerminal.kitty"
     "workspaceBar.accentColor"
     "workspaceBar.inactiveIconOpacity"
     "workspaceBar.textColor"
@@ -145,6 +175,7 @@ in
         "monitorGapOverrides"
         "monitors"
         "routing"
+        "shellPermissions"
         "workspaceBar.iconOverrides"
       ];
       description = ''
@@ -205,7 +236,7 @@ in
           programs.omniwm: settings.hotkeys contains ids unknown to OmniWM ${
             cfg.package.version or "unknown"
           }: ${lib.concatStringsSep ", " unknownHotkeyIds}.
-          OmniWM rejects the entire settings file when it contains unknown hotkey ids; see settings-defaults.toml in the omniwm.nix flake for the known ids, plus `switchWorkspace.9` and the like for workspace 10 onward.'';
+          OmniWM rejects the entire settings file when it contains unknown hotkey ids; see settings-defaults.toml in the omniwm.nix flake for the known ids, plus ids built from a workspace number or a name of letters, digits, `.`, `_` and `-`, such as `switchWorkspace.9` for workspace 10 and `openApp.<bundle id>`.'';
       }
       {
         assertion = cfg.settings == null || preservedNames == [ ] || cfg.mutableSettings;
@@ -237,7 +268,13 @@ in
           "programs.omniwm: settings.schemaVersion is set, but it is managed by OmniWM (schema migrations) and will be ignored. Remove it from your settings."
       ++
         lib.optional (cfg.settings != null && userSettings ? monitorRoutingOverrides)
-          "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements.";
+          "programs.omniwm: settings.monitorRoutingOverrides was removed in OmniWM 0.6.9 (settings schema 3) and will be ignored. Move the entries to settings.routing.arrangements."
+      ++ lib.optionals (cfg.settings != null) (
+        map (
+          hotkey:
+          "programs.omniwm: the hotkey id `${hotkey.id}` in settings.hotkeys has been renamed to `${renamedHotkeyIds.${hotkey.id}}`."
+        ) hotkeysWithOldId
+      );
 
     home.packages = [ cfg.package ];
 
