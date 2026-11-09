@@ -11,14 +11,15 @@ let
   tomlFormat = pkgs.formats.toml { };
   settingsLib = import ./settings.nix { inherit lib; };
 
-  # userSettings reads cfg.settings, so check its results only while this holds.
   managed = cfg.settings != null;
 
   defaultSettings = fromTOML (builtins.readFile ../../settings-defaults.toml);
 
   # Read derivations (writeText etc.) as files, not as attrsets.
   userSettings =
-    if builtins.isAttrs cfg.settings && !lib.isDerivation cfg.settings then
+    if !managed then
+      { }
+    else if builtins.isAttrs cfg.settings && !lib.isDerivation cfg.settings then
       cfg.settings
     else
       fromTOML (builtins.readFile cfg.settings);
