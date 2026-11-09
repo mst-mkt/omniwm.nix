@@ -263,12 +263,12 @@ Feedback from real users is welcome. Please file it as an [issue](https://github
 
 `nix develop ./dev` or `direnv allow` enters the dev shell.
 
-| Command                           | Purpose                                                           |
-| --------------------------------- | ----------------------------------------------------------------- |
-| `nix run ./dev#format`            | Format.                                                           |
-| `nix run ./dev#test`              | lib and nushell tests.                                            |
-| `nix run ./dev#generate-defaults` | Regenerate `settings-defaults.toml`. macOS with a matching Xcode. |
-| `nix flake check ./dev`           | Format check and tests, as CI runs them.                          |
+| Command                           | Purpose                                                                                                                                                  |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nix run ./dev#format`            | Format.                                                                                                                                                  |
+| `nix run ./dev#test`              | lib and nushell tests.                                                                                                                                   |
+| `nix run ./dev#generate-defaults` | Regenerate `settings-defaults.toml`. Needs a Mac that meets OmniWM's [build requirements](https://github.com/OmniNull/OmniWM/blob/main/CONTRIBUTING.md). |
+| `nix flake check ./dev`           | Format check and tests, as CI runs them.                                                                                                                 |
 
 `settings-defaults.toml` is the `settings.toml` that OmniWM writes on first launch. [codegen/generate-defaults.nu](./codegen/generate-defaults.nu) generates it from the upstream sources at the packaged tag. The Update workflow bumps the version and regenerates the file daily, so neither needs to be done by hand.
 

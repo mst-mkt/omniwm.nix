@@ -124,7 +124,7 @@
 
           format = app "Format the repository" treefmtEval.${system}.config.build.wrapper;
 
-          generate-defaults = app "Regenerate settings-defaults.toml (macOS with a matching Xcode)" (
+          generate-defaults = app "Regenerate settings-defaults.toml (macOS only)" (
             pkgs.writeShellApplication {
               name = "omniwm-generate-defaults";
               runtimeInputs = [ pkgs.nushell ];
