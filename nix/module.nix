@@ -175,6 +175,7 @@ in
         "monitorGapOverrides"
         "monitors"
         "routing"
+        "shellPermissions"
         "workspaceBar.iconOverrides"
       ];
       description = ''
