@@ -5,11 +5,16 @@ const root = path self ..
 const out = $root | path join "settings-defaults.toml"
 const repo_url = "https://github.com/OmniNull/OmniWM"
 
+def swiftly-bin [] {
+  $env.SWIFTLY_HOME_DIR? | default ("~/.swiftly" | path expand) | path join "bin"
+}
+
 def omniwm-version [] {
   nix eval --raw $"($root)#packages.aarch64-darwin.omniwm.version"
 }
 
 # Clones upstream at the packaged tag into <work>/OmniWM and fetches the GhosttyKit binary target.
+# Installs upstream's pinned Swift toolchain into ~/.swiftly.
 def "main prepare" [work: path] {
   let work = $work | path expand
   let version = omniwm-version
@@ -27,6 +32,8 @@ def "main prepare" [work: path] {
   mkdir Frameworks
   tar -xf $ghostty_zip -C Frameworks
   ./Scripts/ghostty-preflight.sh verify
+
+  ./Scripts/swift-toolchain.sh
 }
 
 # Runs the injected test against a checkout made by `prepare` and writes settings-defaults.toml.
@@ -40,10 +47,13 @@ def "main build" [work: path] {
   cd $checkout
   cp ($script_dir | path join "GenerateDefaultsTemplateTests.swift") Tests/OmniWMTests/
 
+  # ~/.swiftly/bin/swift is a proxy that picks the toolchain from .swift-version in the checkout
   with-env {
+    PATH: ($env.PATH | prepend (swiftly-bin))
     OMNIWM_DEFAULTS_OUT: $generated
     LIBRARY_PATH: (./Scripts/ghostty-preflight.sh print-library-dir)
   } {
+    swift --version
     swift test --filter GenerateDefaultsTemplateTests
   }
 
@@ -59,7 +69,6 @@ def "main build" [work: path] {
 
 # Regenerates settings-defaults.toml by building upstream at the packaged tag and running an injected test.
 # The output is byte-identical to OmniWM's first-launch settings.toml, plus a version header line.
-# Requires macOS with an Xcode matching upstream's swift-tools-version.
 # Runs `prepare` and `build` in a temporary directory; CI calls them as separate steps.
 def main [] {
   let work = mktemp --directory
