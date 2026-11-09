@@ -80,12 +80,14 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
             access-tokens = github.com=${{ github.token }}
+      - name: Prepare the upstream checkout
+        run: nix run --inputs-from . nixpkgs#nushell -- codegen/generate-defaults.nu prepare "$RUNNER_TEMP/omniwm"
       - name: Regenerate settings defaults
         run: |
           sw_vers
           xcodebuild -version
           swift --version
-          nix run --inputs-from . nixpkgs#nushell -- codegen/generate-defaults.nu
+          nix run --inputs-from . nixpkgs#nushell -- codegen/generate-defaults.nu build "$RUNNER_TEMP/omniwm"
       - name: Validate template
         run: |
           nix eval --impure --expr \
